@@ -12,6 +12,18 @@ class EtudiantFactory extends Factory
 
     public function definition()
     {
-        return ['promotion_id' => Promotion::factory(), 'matricule' => strtoupper($this->faker->unique()->bothify('ETU-####')), 'nom' => $this->faker->lastName, 'prenom' => $this->faker->firstName, 'email' => $this->faker->unique()->safeEmail, 'telephone' => $this->faker->phoneNumber];
+        return [
+            'promotion_id' => Promotion::factory(),
+            'faculte_id' => \App\Models\Faculte::factory(),
+            'matricule' => strtoupper($this->faker->unique()->bothify('ETU-####-????')),
+            'nom' => $this->faker->lastName,
+            'postnom' => $this->faker->lastName,
+            'prenom' => $this->faker->firstName,
+            'sexe' => $this->faker->randomElement(['M','F']),
+            'email' => $this->faker->unique()->safeEmail,
+            'telephone' => $this->faker->phoneNumber,
+            'statut' => 'actif',
+            'is_active' => true,
+        ];
     }
 }

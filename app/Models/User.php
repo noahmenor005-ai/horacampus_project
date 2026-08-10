@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -37,21 +38,36 @@ class User extends Authenticatable
         self::STATUS_REJECTED,
     ];
 
+    public const SEXE_M = 'M';
+    public const SEXE_F = 'F';
+    public const SEXE_AUTRE = 'Autre';
+
+    public const SEXES = ['M', 'F', 'Autre'];
+
+    public const STATUT_ACTIF = 'actif';
+    public const STATUT_INACTIF = 'inactif';
+
     public const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
     protected $fillable = [
         'nom',
+        'postnom',
         'prenom',
+        'matricule',
+        'sexe',
         'email',
         'password',
         'telephone',
         'role',
         'status',
+        'statut_inscription',
+        'is_active',
         'faculte_id',
         'domaine_id',
         'filiere_id',
         'mention_id',
         'promotion_id',
+        'annee_academique_id',
         'photo_path',
         'last_login_at',
     ];
@@ -64,11 +80,18 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
 
     public function getNomCompletAttribute(): string
     {
         return trim(($this->prenom ? $this->prenom . ' ' : '') . $this->nom);
+    }
+
+    public function getNomCompletAvecPostnomAttribute(): string
+    {
+        $parts = array_filter([$this->prenom, $this->nom, $this->postnom]);
+        return implode(' ', $parts);
     }
 
     public function isAdmin(): bool
@@ -111,6 +134,15 @@ class User extends Authenticatable
         return $this->status === self::STATUS_REJECTED;
     }
 
+    public function isActive(): bool
+    {
+        // Un étudiant/enseignant est actif si is_active=true et status=accepted (ou statut_inscription actif)
+        if (isset($this->attributes['is_active'])) {
+            return (bool) $this->is_active && $this->status !== self::STATUS_REJECTED;
+        }
+        return $this->isAccepted();
+    }
+
     public function roleLabel(): string
     {
         return [
@@ -128,6 +160,15 @@ class User extends Authenticatable
             self::STATUS_ACCEPTED => 'Accepté',
             self::STATUS_REJECTED => 'Refusé',
         ][$this->status] ?? $this->status;
+    }
+
+    public function sexeLabel(): string
+    {
+        return [
+            'M' => 'Masculin',
+            'F' => 'Féminin',
+            'Autre' => 'Autre',
+        ][$this->sexe] ?? ($this->sexe ?? '-');
     }
 
     public function faculte(): BelongsTo
@@ -153,6 +194,21 @@ class User extends Authenticatable
     public function promotion(): BelongsTo
     {
         return $this->belongsTo(Promotion::class, 'promotion_id');
+    }
+
+    public function anneeAcademique(): BelongsTo
+    {
+        return $this->belongsTo(AnneeAcademique::class, 'annee_academique_id');
+    }
+
+    public function etudiantProfile(): HasOne
+    {
+        return $this->hasOne(Etudiant::class, 'user_id');
+    }
+
+    public function enseignantProfile(): HasOne
+    {
+        return $this->hasOne(Enseignant::class, 'user_id');
     }
 
     public function ecs(): BelongsToMany
@@ -188,5 +244,16 @@ class User extends Authenticatable
     public function historiques(): HasMany
     {
         return $this->hasMany(Historique::class, 'user_id');
+    }
+
+    // Helpers pour la hiérarchie LMD
+    public function belongsToFaculty(int $faculteId): bool
+    {
+        return (int) $this->faculte_id === $faculteId;
+    }
+
+    public function scopeForFaculty($query, int $faculteId)
+    {
+        return $query->where('faculte_id', $faculteId);
     }
 }

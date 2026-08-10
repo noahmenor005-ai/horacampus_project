@@ -18,11 +18,19 @@ class ProfileController extends Controller
     {
         $data = $request->validated();
 
+        // Sécurité : un étudiant ne doit pas pouvoir modifier son matricule, faculté, promotion, etc. même en manipulant la requête
+        $filtered = collect($data)->only(['nom', 'prenom', 'postnom', 'telephone', 'photo_path'])->toArray();
+
+        // Si l'utilisateur n'est pas étudiant, on peut autoriser nom/prenom/postnom/telephone
+        // Mais on bloque toujours les champs académiques
         if ($request->hasFile('photo')) {
-            $data['photo_path'] = $request->file('photo')->store('profiles', 'public');
+            $filtered['photo_path'] = $request->file('photo')->store('profiles', 'public');
         }
 
-        $request->user()->update($data);
+        // Retirer photo du tableau validé brut si présent
+        unset($filtered['photo']);
+
+        $request->user()->update($filtered);
 
         return back()->with('success', 'Profil mis à jour.');
     }

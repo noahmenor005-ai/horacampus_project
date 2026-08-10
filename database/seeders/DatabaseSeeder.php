@@ -10,6 +10,8 @@ use App\Models\DemandeAuditoire;
 use App\Models\Disponibilite;
 use App\Models\Domaine;
 use App\Models\Ec;
+use App\Models\Enseignant;
+use App\Models\Etudiant;
 use App\Models\Faculte;
 use App\Models\Filiere;
 use App\Models\Horaire;
@@ -36,11 +38,16 @@ class DatabaseSeeder extends Seeder
             ['email' => 'noahmenor005@gmail.com'],
             [
                 'nom' => 'MENOR',
-                'prenom' => 'NOAH',
+                'postnom' => 'NOAH',
+                'prenom' => 'Admin',
+                'matricule' => null,
+                'sexe' => 'M',
                 'password' => Hash::make('#noah005'),
                 'telephone' => '0999000000',
                 'role' => User::ROLE_ADMIN,
                 'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
             ]
         );
 
@@ -49,46 +56,140 @@ class DatabaseSeeder extends Seeder
             ['nom' => 'Faculté des Sciences et Technologies', 'description' => 'Faculté de référence de la plateforme HoraCampus']
         );
 
-        User::updateOrCreate(
+        // Deuxième faculté pour tester l'isolation Décanat
+        $faculte2 = Faculte::updateOrCreate(
+            ['code' => 'FSEG'],
+            ['nom' => 'Faculté des Sciences Économiques et de Gestion', 'description' => 'Faculté de test isolation']
+        );
+
+        // Décanat FST
+        $decanatFst = User::updateOrCreate(
             ['email' => 'decanat@fst.cd'],
             [
                 'nom' => 'KABUNDI',
+                'postnom' => 'MUKENDI',
                 'prenom' => 'Jean-Paul',
+                'matricule' => 'DEC-FST-001',
+                'sexe' => 'M',
                 'password' => Hash::make('password'),
                 'telephone' => '0991000000',
                 'role' => User::ROLE_DECANAT,
                 'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
                 'faculte_id' => $faculte->id,
             ]
         );
 
         User::updateOrCreate(
+            ['email' => 'decanat@fseg.cd'],
+            [
+                'nom' => 'KASONGO',
+                'postnom' => '',
+                'prenom' => 'Marie',
+                'matricule' => 'DEC-FSEG-001',
+                'sexe' => 'F',
+                'password' => Hash::make('password'),
+                'telephone' => '0991000001',
+                'role' => User::ROLE_DECANAT,
+                'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
+                'faculte_id' => $faculte2->id,
+            ]
+        );
+
+        $enseignant = User::updateOrCreate(
             ['email' => 'enseignant@fst.cd'],
             [
                 'nom' => 'KABASELE',
+                'postnom' => 'ILUNGA',
                 'prenom' => 'Jean',
+                'matricule' => 'ENS-FST-001',
+                'sexe' => 'M',
                 'password' => Hash::make('password'),
                 'telephone' => '0992000000',
                 'role' => User::ROLE_ENSEIGNANT,
                 'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
                 'faculte_id' => $faculte->id,
             ]
         );
 
+        // Étudiant avec matricule unique pour test connexion Nom + Matricule
         User::updateOrCreate(
-            ['email' => 'etudiant@fst.cd'],
+            ['matricule' => '24XYZ123'],
             [
-                'nom' => 'ILUNGA',
-                'prenom' => 'Marie',
-                'password' => Hash::make('password'),
+                'nom' => 'MENOR',
+                'postnom' => 'TEST',
+                'prenom' => 'Noah',
+                'sexe' => 'M',
+                'email' => 'etudiant@fst.cd',
+                'password' => Hash::make('24XYZ123'), // mot de passe initial = matricule
                 'telephone' => '0993000000',
                 'role' => User::ROLE_ETUDIANT,
                 'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
                 'faculte_id' => $faculte->id,
+            ]
+        );
+
+        // Étudiant isolation (autre faculté)
+        User::updateOrCreate(
+            ['matricule' => 'FSEG2024001'],
+            [
+                'nom' => 'NGOY',
+                'postnom' => 'KABEYA',
+                'prenom' => 'Patrick',
+                'sexe' => 'M',
+                'email' => 'etudiant.fseg@fst.cd',
+                'password' => Hash::make('FSEG2024001'),
+                'telephone' => '0993000001',
+                'role' => User::ROLE_ETUDIANT,
+                'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
+                'faculte_id' => $faculte2->id,
             ]
         );
 
         $admin->update(['faculte_id' => $faculte->id]);
+
+        // Miroir dans tables etudiants/enseignants
+        try {
+            $u = User::where('matricule','24XYZ123')->first();
+            if ($u) {
+                Etudiant::updateOrCreate(['matricule' => '24XYZ123'], [
+                    'user_id' => $u->id,
+                    'nom' => $u->nom,
+                    'postnom' => $u->postnom,
+                    'prenom' => $u->prenom,
+                    'sexe' => $u->sexe,
+                    'telephone' => $u->telephone,
+                    'email' => $u->email,
+                    'faculte_id' => $u->faculte_id,
+                    'statut' => 'actif',
+                    'is_active' => true,
+                ]);
+            }
+            $e = User::where('email','enseignant@fst.cd')->first();
+            if ($e) {
+                Enseignant::updateOrCreate(['matricule' => 'ENS-FST-001'], [
+                    'user_id' => $e->id,
+                    'nom' => $e->nom,
+                    'postnom' => $e->postnom,
+                    'prenom' => $e->prenom,
+                    'sexe' => $e->sexe,
+                    'telephone' => $e->telephone,
+                    'email' => $e->email,
+                    'faculte_id' => $e->faculte_id,
+                    'statut' => 'actif',
+                    'is_active' => true,
+                ]);
+            }
+        } catch (\Throwable $ex) {}
     }
 
     private function seedLmd(): void
@@ -116,14 +217,36 @@ class DatabaseSeeder extends Seeder
         }
 
         $enseignant = User::where('email', 'enseignant@fst.cd')->first();
-        $etudiant = User::where('email', 'etudiant@fst.cd')->first();
+        $etudiant = User::where('matricule', '24XYZ123')->first();
 
         $etudiant->update([
             'domaine_id' => $domaine->id,
             'filiere_id' => $filiere->id,
             'mention_id' => $mention->id,
             'promotion_id' => $promotions['L1']->id,
+            'annee_academique_id' => $annee->id,
         ]);
+
+        try {
+            Etudiant::where('matricule','24XYZ123')->update([
+                'domaine_id' => $domaine->id,
+                'filiere_id' => $filiere->id,
+                'mention_id' => $mention->id,
+                'promotion_id' => $promotions['L1']->id,
+                'annee_academique_id' => $annee->id,
+                'faculte_id' => $faculte->id,
+            ]);
+            // Etudiant FSEG
+            $domaine2 = Domaine::updateOrCreate(['nom' => 'Sciences Économiques'], ['faculte_id' => Faculte::where('code','FSEG')->first()->id]);
+            $filiere2 = Filiere::updateOrCreate(['nom' => 'Gestion'], ['domaine_id' => $domaine2->id]);
+            $mention2 = Mention::updateOrCreate(['nom' => 'Licence Gestion'], ['filiere_id' => $filiere2->id]);
+            $prom2 = Promotion::updateOrCreate(['mention_id' => $mention2->id, 'nom' => 'L1 Gestion'], ['annee_academique_id' => $annee->id, 'niveau'=>'L1', 'effectif'=>50]);
+            $u2 = User::where('matricule','FSEG2024001')->first();
+            if ($u2) {
+                $u2->update(['domaine_id'=>$domaine2->id,'filiere_id'=>$filiere2->id,'mention_id'=>$mention2->id,'promotion_id'=>$prom2->id,'annee_academique_id'=>$annee->id]);
+                Etudiant::where('matricule','FSEG2024001')->update(['domaine_id'=>$domaine2->id,'filiere_id'=>$filiere2->id,'mention_id'=>$mention2->id,'promotion_id'=>$prom2->id,'annee_academique_id'=>$annee->id,'faculte_id'=>$u2->faculte_id]);
+            }
+        } catch (\Throwable $e) {}
 
         $semestre1 = Semestre::where('libelle', 'Semestre 1')->first();
 
@@ -146,7 +269,7 @@ class DatabaseSeeder extends Seeder
                     ['code' => $ueData['code'] . '-' . $type],
                     ['ue_id' => $ue->id, 'nom' => $ueData['nom'] . ' (' . $type . ')', 'coefficient' => 2, 'volume_horaire' => $volume]
                 );
-                $ec->enseignants()->sync([$enseignant->id]);
+                $ec->enseignants()->syncWithoutDetaching([$enseignant->id]);
                 $ecs[$ueData['code'] . '-' . $type] = $ec;
             }
         }
