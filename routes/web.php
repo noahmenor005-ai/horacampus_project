@@ -22,21 +22,28 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// Authentification publique : uniquement login, pas d'inscription publique
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'loginForm'])->name('login');
     Route::post('login', [AuthController::class, 'login']);
-    Route::get('register', [AuthController::class, 'registerForm'])->name('register');
-    Route::post('register', [AuthController::class, 'register']);
-
-    Route::get('domaines/{faculte}', [AuthController::class, 'domainesParFaculte'])->name('register.domaines');
-    Route::get('filieres/{domaine}', [AuthController::class, 'filieresParDomaine'])->name('register.filieres');
-    Route::get('mentions/{filiere}', [AuthController::class, 'mentionsParFiliere'])->name('register.mentions');
-    Route::get('promotions/{mention}', [AuthController::class, 'promotionsParMention'])->name('register.promotions');
 
     Route::get('mot-de-passe/oublie', [AuthController::class, 'forgotPasswordForm'])->name('password.request');
     Route::post('mot-de-passe/email', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
     Route::get('mot-de-passe/reset/{token}', [AuthController::class, 'resetPasswordForm'])->name('password.reset');
     Route::post('mot-de-passe/reset', [AuthController::class, 'resetPassword'])->name('password.update');
+});
+
+// Routes pour les selects dépendants
+Route::middleware('auth')->group(function () {
+    Route::get('api/domaines/{faculte}', [AuthController::class, 'domainesParFaculte'])->name('api.domaines');
+    Route::get('api/filieres/{domaine}', [AuthController::class, 'filieresParDomaine'])->name('api.filieres');
+    Route::get('api/mentions/{filiere}', [AuthController::class, 'mentionsParFiliere'])->name('api.mentions');
+    Route::get('api/promotions/{mention}', [AuthController::class, 'promotionsParMention'])->name('api.promotions');
+    // Compatibilité anciennes routes register
+    Route::get('domaines/{faculte}', [AuthController::class, 'domainesParFaculte'])->name('register.domaines');
+    Route::get('filieres/{domaine}', [AuthController::class, 'filieresParDomaine'])->name('register.filieres');
+    Route::get('mentions/{filiere}', [AuthController::class, 'mentionsParFiliere'])->name('register.mentions');
+    Route::get('promotions/{mention}', [AuthController::class, 'promotionsParMention'])->name('register.promotions');
 });
 
 Route::middleware('auth')->group(function () {
@@ -46,7 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::put('profil', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profil/mot-de-passe', [ProfileController::class, 'password'])->name('profile.password');
 
-    // Horaires : consultation pour tous, édition pour admin / décanat
+    // Horaires : consultation pour tous, édition pour admin / décanat uniquement
     Route::get('horaires', [HoraireController::class, 'index'])->name('horaires.index');
     Route::get('horaires-impression', [HoraireController::class, 'print'])->name('horaires.print');
     Route::get('horaires-export', [HoraireController::class, 'export'])->name('horaires.export');
@@ -76,12 +83,38 @@ Route::middleware('auth')->group(function () {
         Route::patch('disponibilites/{disponibilite}/statut', [DisponibiliteController::class, 'updateStatus'])->name('disponibilites.status');
     });
 
-    // Gestion académique (admin + décanat)
+    // ============ GESTION DECANAT : Étudiants & Enseignants (réservé au Décanat uniquement) ============
+    Route::middleware('role:decanat')->group(function () {
+        Route::get('etudiants', [EtudiantController::class, 'index'])->name('etudiants.index');
+        Route::get('etudiants/creer', [EtudiantController::class, 'create'])->name('etudiants.create');
+        Route::post('etudiants', [EtudiantController::class, 'store'])->name('etudiants.store');
+        Route::get('etudiants/{etudiant}', [EtudiantController::class, 'show'])->name('etudiants.show');
+        Route::get('etudiants/{etudiant}/modifier', [EtudiantController::class, 'edit'])->name('etudiants.edit');
+        Route::put('etudiants/{etudiant}', [EtudiantController::class, 'update'])->name('etudiants.update');
+        Route::delete('etudiants/{etudiant}', [EtudiantController::class, 'destroy'])->name('etudiants.destroy');
+        Route::patch('etudiants/{etudiant}/desactiver', [EtudiantController::class, 'desactiver'])->name('etudiants.desactiver');
+        Route::patch('etudiants/{etudiant}/reactiver', [EtudiantController::class, 'reactiver'])->name('etudiants.reactiver');
+
+        Route::get('enseignants', [EnseignantController::class, 'index'])->name('enseignants.index');
+        Route::get('enseignants/creer', [EnseignantController::class, 'create'])->name('enseignants.create');
+        Route::post('enseignants', [EnseignantController::class, 'store'])->name('enseignants.store');
+        Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show'])->name('enseignants.show');
+        Route::get('enseignants/{enseignant}/modifier', [EnseignantController::class, 'edit'])->name('enseignants.edit');
+        Route::put('enseignants/{enseignant}', [EnseignantController::class, 'update'])->name('enseignants.update');
+        Route::delete('enseignants/{enseignant}', [EnseignantController::class, 'destroy'])->name('enseignants.destroy');
+        Route::patch('enseignants/{enseignant}/desactiver', [EnseignantController::class, 'desactiver'])->name('enseignants.desactiver');
+        Route::patch('enseignants/{enseignant}/reactiver', [EnseignantController::class, 'reactiver'])->name('enseignants.reactiver');
+
+        // Aliases pour la spec qui mentionne /decanat/etudiants (doit retourner 403 pour étudiant, 200 pour décanat)
+        Route::get('decanat/etudiants', [EtudiantController::class, 'index'])->name('decanat.etudiants.index');
+        Route::get('decanat/etudiants/creer', [EtudiantController::class, 'create'])->name('decanat.etudiants.create');
+        Route::get('decanat/enseignants', [EnseignantController::class, 'index'])->name('decanat.enseignants.index');
+    });
+
+    // Gestion académique restante (admin + décanat)
     Route::middleware('role:admin,decanat')->group(function () {
         Route::resource('promotions', PromotionController::class)->except('show');
         Route::resource('cours', CoursController::class)->except('show');
-        Route::resource('enseignants', EnseignantController::class)->except('show');
-        Route::resource('etudiants', EtudiantController::class)->except('show');
 
         Route::get('gestion/{resource}', [LmdCrudController::class, 'index'])->name('lmd.index');
         Route::get('gestion/{resource}/ajouter', [LmdCrudController::class, 'create'])->name('lmd.create');
@@ -108,4 +141,9 @@ Route::middleware('auth')->group(function () {
         Route::get('rapports', [RapportController::class, 'index'])->name('rapports.index');
         Route::get('rapports/pdf', [RapportController::class, 'pdf'])->name('rapports.pdf');
     });
+
+    // Bloquer l'accès aux routes du Décanat pour les étudiants même en direct URL (double sécurité)
+    Route::get('acces-refuse', function () {
+        abort(403, 'Accès réservé au Décanat.');
+    })->name('acces.refuse');
 });

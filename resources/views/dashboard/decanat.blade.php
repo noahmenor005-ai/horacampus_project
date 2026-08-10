@@ -1,22 +1,23 @@
 @extends('layouts.app')
 
-@section('title', 'Tableau de bord décanat')
+@section('title', 'Tableau de bord décanat — ' . optional(auth()->user()->faculte)->nom)
 
 @section('content')
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
     <div>
-        <h1 class="h3 mb-1">Tableau de bord</h1>
-        <p class="text-muted mb-0">Activité de votre faculté.</p>
+        <h1 class="h3 mb-1">Tableau de bord — Décanat {{ optional(auth()->user()->faculte)->nom }}</h1>
+        <p class="text-muted mb-0">Responsable de l'enregistrement des étudiants et enseignants de votre faculté.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('demandes.create') }}"><i class="bi bi-send"></i> Nouvelle demande</a>
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('disponibilites.index') }}"><i class="bi bi-clock-history"></i> Disponibilités</a>
+        <a class="btn btn-primary btn-sm" href="{{ route('etudiants.create') }}"><i class="bi bi-person-plus"></i> Ajouter étudiant</a>
+        <a class="btn btn-primary btn-sm" href="{{ route('enseignants.create') }}"><i class="bi bi-person-plus-fill"></i> Ajouter enseignant</a>
+        <a class="btn btn-outline-primary btn-sm" href="{{ route('demandes.create') }}"><i class="bi bi-send"></i> Demande salle</a>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
     @foreach($stats as $stat)
-        <div class="col-md-6 col-xl-3">
+        <div class="col-md-6 col-xl-2">
             <div class="surface stat-card d-flex align-items-center gap-3">
                 <div class="stat-icon"><i class="bi {{ $stat['icon'] }} fs-5"></i></div>
                 <div>
@@ -26,6 +27,13 @@
             </div>
         </div>
     @endforeach
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-3"><a href="{{ route('etudiants.index') }}" class="surface p-3 d-block text-decoration-none text-dark"><i class="bi bi-people fs-3 text-primary"></i><div class="fw-semibold">Gestion des étudiants</div><small class="text-muted">Ajouter, modifier, consulter, désactiver, rechercher</small></a></div>
+    <div class="col-lg-3"><a href="{{ route('enseignants.index') }}" class="surface p-3 d-block text-decoration-none text-dark"><i class="bi bi-person-workspace fs-3 text-success"></i><div class="fw-semibold">Gestion des enseignants</div><small class="text-muted">Ajouter, modifier, consulter, désactiver, rechercher</small></a></div>
+    <div class="col-lg-3"><a href="{{ route('lmd.index', 'domaines') }}" class="surface p-3 d-block text-decoration-none text-dark"><i class="bi bi-diagram-3 fs-3 text-warning"></i><div class="fw-semibold">Domaines</div><small class="text-muted">Organisation LMD</small></a></div>
+    <div class="col-lg-3"><a href="{{ route('horaires.index') }}" class="surface p-3 d-block text-decoration-none text-dark"><i class="bi bi-calendar-week fs-3 text-info"></i><div class="fw-semibold">Horaires</div><small class="text-muted">Planification</small></a></div>
 </div>
 
 <div class="row g-3">
@@ -77,6 +85,11 @@
                     <li class="list-group-item text-muted">Aucun enseignant dans cette faculté.</li>
                 @endforelse
             </ul>
+            <div class="mt-3 d-flex gap-2">
+                <a href="{{ route('lmd.index', 'mentions') }}" class="btn btn-outline-secondary btn-sm flex-fill">Mentions</a>
+                <a href="{{ route('lmd.index', 'promotions') }}" class="btn btn-outline-secondary btn-sm flex-fill">Promotions</a>
+                <a href="{{ route('lmd.index', 'annees') }}" class="btn btn-outline-secondary btn-sm flex-fill">Années acad.</a>
+            </div>
         </div>
     </div>
 </div>

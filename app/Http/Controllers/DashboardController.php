@@ -17,6 +17,12 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // Sécurité : vérifier is_active
+        if (isset($user->is_active) && !$user->is_active) {
+            auth()->logout();
+            return redirect()->route('login')->withErrors(['email' => 'Votre compte est désactivé. Contactez le Décanat.']);
+        }
+
         if ($user->isAdmin()) {
             return view('dashboard.admin', $this->adminData($horaireService));
         }
@@ -64,8 +70,8 @@ class DashboardController extends Controller
         $faculteId = $user->faculte_id;
 
         $stats = [
-            ['label' => 'Enseignants', 'total' => User::where('role', User::ROLE_ENSEIGNANT)->where('faculte_id', $faculteId)->count(), 'icon' => 'bi-person-workspace'],
-            ['label' => 'Étudiants', 'total' => User::where('role', User::ROLE_ETUDIANT)->where('faculte_id', $faculteId)->count(), 'icon' => 'bi-people'],
+            ['label' => 'Enseignants (ma faculté)', 'total' => User::where('role', User::ROLE_ENSEIGNANT)->where('faculte_id', $faculteId)->count(), 'icon' => 'bi-person-workspace'],
+            ['label' => 'Étudiants (ma faculté)', 'total' => User::where('role', User::ROLE_ETUDIANT)->where('faculte_id', $faculteId)->count(), 'icon' => 'bi-people'],
             ['label' => 'Horaires', 'total' => Horaire::whereHas('promotion.mention.filiere.domaine', fn ($q) => $q->where('faculte_id', $faculteId))->count(), 'icon' => 'bi-calendar-week'],
             ['label' => 'Demandes envoyées', 'total' => DemandeAuditoire::where('created_by', $user->id)->count(), 'icon' => 'bi-send'],
             ['label' => 'Demandes acceptées', 'total' => DemandeAuditoire::where('created_by', $user->id)->where('statut', DemandeAuditoire::STATUT_ACCEPTEE)->count(), 'icon' => 'bi-check2-circle'],
@@ -112,6 +118,7 @@ class DashboardController extends Controller
 
     private function etudiantData(User $user): array
     {
+        // L'étudiant ne peut voir que ses propres données ; toute tentative de modification est bloquée côté serveur
         $aujourdhui = now()->toDateString();
         $finSemaine = now()->addDays(6)->toDateString();
 
