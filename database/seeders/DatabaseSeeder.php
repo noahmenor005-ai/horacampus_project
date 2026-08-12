@@ -62,6 +62,12 @@ class DatabaseSeeder extends Seeder
             ['nom' => 'Faculté des Sciences Économiques et de Gestion', 'description' => 'Faculté de test isolation']
         );
 
+        // Faculté FSI — faculté par défaut du compte Décanat FSI
+        $faculteFsi = Faculte::updateOrCreate(
+            ['code' => 'FSI'],
+            ['nom' => 'Faculté des Sciences Informatiques', 'description' => 'Faculté du compte Décanat par défaut FSI']
+        );
+
         // Décanat FST
         $decanatFst = User::updateOrCreate(
             ['email' => 'decanat@fst.cd'],
@@ -96,6 +102,25 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
                 'statut_inscription' => 'actif',
                 'faculte_id' => $faculte2->id,
+            ]
+        );
+
+        // Décanat FSI — compte Décanat créé par défaut (Nom : FSI, mot de passe : 098765)
+        User::updateOrCreate(
+            ['email' => 'decanat@fsi.cd'],
+            [
+                'nom' => 'FSI',
+                'postnom' => null,
+                'prenom' => 'Décanat',
+                'matricule' => 'DEC-FSI-001',
+                'sexe' => null,
+                'password' => Hash::make('098765'),
+                'telephone' => '0991000002',
+                'role' => User::ROLE_DECANAT,
+                'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
+                'faculte_id' => $faculteFsi->id,
             ]
         );
 
