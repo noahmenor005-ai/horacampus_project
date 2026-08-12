@@ -219,6 +219,11 @@ class DatabaseSeeder extends Seeder
 
     private function seedLmd(): void
     {
+        AnneeAcademique::updateOrCreate(
+            ['libelle' => '2025-2026'],
+            ['date_debut' => '2025-09-01', 'date_fin' => '2026-07-31', 'active' => false]
+        );
+
         $annee = AnneeAcademique::updateOrCreate(
             ['libelle' => '2026-2027'],
             ['date_debut' => '2026-09-01', 'date_fin' => '2027-07-31', 'active' => true]
@@ -314,6 +319,200 @@ class DatabaseSeeder extends Seeder
         $this->seedDisponibilites($enseignant, $semestre1);
         $this->seedDemandes($promotions['L1'], $enseignant, $semestre1, $ecs, $annee);
         $this->seedHoraires($promotions['L1'], $enseignant, $semestre1, $ecs);
+        $this->seedFsi($annee, $semestre1);
+    }
+
+    private function seedFsi(AnneeAcademique $annee, Semestre $semestre1): void
+    {
+        $faculteFsi = Faculte::where('code', 'FSI')->first();
+        if (!$faculteFsi) {
+            return;
+        }
+
+        $domaine = Domaine::updateOrCreate(
+            ['nom' => 'Sciences Informatiques', 'faculte_id' => $faculteFsi->id],
+            ['description' => 'Informatique, réseaux et systèmes', 'actif' => true]
+        );
+        $filiereGl = Filiere::updateOrCreate(
+            ['nom' => 'Génie Logiciel', 'domaine_id' => $domaine->id],
+            ['description' => 'Conception et développement logiciel', 'actif' => true]
+        );
+        $filiereRes = Filiere::updateOrCreate(
+            ['nom' => 'Réseaux et Télécommunications', 'domaine_id' => $domaine->id],
+            ['description' => 'Réseaux, sécurité et télécoms', 'actif' => true]
+        );
+        $mentionGl = Mention::updateOrCreate(
+            ['nom' => 'Licence en Génie Logiciel', 'filiere_id' => $filiereGl->id],
+            ['description' => 'Cycle licence GL', 'actif' => true]
+        );
+        $mentionRes = Mention::updateOrCreate(
+            ['nom' => 'Licence Réseaux', 'filiere_id' => $filiereRes->id],
+            ['description' => 'Cycle licence Réseaux', 'actif' => true]
+        );
+
+        $promos = [];
+        foreach (['L1' => 'L1 Génie Logiciel', 'L2' => 'L2 Génie Logiciel', 'L3' => 'L3 Génie Logiciel'] as $niveau => $nom) {
+            $promos[$niveau] = Promotion::updateOrCreate(
+                ['mention_id' => $mentionGl->id, 'nom' => $nom],
+                ['annee_academique_id' => $annee->id, 'niveau' => $niveau, 'effectif' => 55, 'actif' => true]
+            );
+        }
+        Promotion::updateOrCreate(
+            ['mention_id' => $mentionRes->id, 'nom' => 'L1 Réseaux'],
+            ['annee_academique_id' => $annee->id, 'niveau' => 'L1', 'effectif' => 40, 'actif' => true]
+        );
+
+        $enseignant = User::updateOrCreate(
+            ['email' => 'enseignant@fsi.cd'],
+            [
+                'nom' => 'KABONGO',
+                'postnom' => 'MUTOMBO',
+                'prenom' => 'Pierre',
+                'matricule' => 'ENS-FSI-001',
+                'sexe' => 'M',
+                'password' => Hash::make('password'),
+                'telephone' => '0992000100',
+                'role' => User::ROLE_ENSEIGNANT,
+                'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
+                'faculte_id' => $faculteFsi->id,
+                'specialite' => 'Génie logiciel',
+                'grade' => 'Chef de travaux',
+            ]
+        );
+
+        Enseignant::updateOrCreate(['matricule' => 'ENS-FSI-001'], [
+            'user_id' => $enseignant->id,
+            'nom' => $enseignant->nom,
+            'postnom' => $enseignant->postnom,
+            'prenom' => $enseignant->prenom,
+            'sexe' => $enseignant->sexe,
+            'telephone' => $enseignant->telephone,
+            'email' => $enseignant->email,
+            'faculte_id' => $faculteFsi->id,
+            'specialite' => 'Génie logiciel',
+            'grade' => 'Chef de travaux',
+            'statut' => 'actif',
+            'is_active' => true,
+        ]);
+
+        $etudiant = User::updateOrCreate(
+            ['matricule' => 'FSI2024001'],
+            [
+                'nom' => 'MUKENDI',
+                'postnom' => 'KABEYA',
+                'prenom' => 'Alice',
+                'sexe' => 'F',
+                'email' => 'etudiant@fsi.cd',
+                'password' => Hash::make('FSI2024001'),
+                'telephone' => '0993000100',
+                'role' => User::ROLE_ETUDIANT,
+                'status' => User::STATUS_ACCEPTED,
+                'is_active' => true,
+                'statut_inscription' => 'actif',
+                'faculte_id' => $faculteFsi->id,
+                'domaine_id' => $domaine->id,
+                'filiere_id' => $filiereGl->id,
+                'mention_id' => $mentionGl->id,
+                'promotion_id' => $promos['L1']->id,
+                'annee_academique_id' => $annee->id,
+            ]
+        );
+
+        Etudiant::updateOrCreate(['matricule' => 'FSI2024001'], [
+            'user_id' => $etudiant->id,
+            'nom' => $etudiant->nom,
+            'postnom' => $etudiant->postnom,
+            'prenom' => $etudiant->prenom,
+            'sexe' => $etudiant->sexe,
+            'telephone' => $etudiant->telephone,
+            'email' => $etudiant->email,
+            'faculte_id' => $faculteFsi->id,
+            'domaine_id' => $domaine->id,
+            'filiere_id' => $filiereGl->id,
+            'mention_id' => $mentionGl->id,
+            'promotion_id' => $promos['L1']->id,
+            'annee_academique_id' => $annee->id,
+            'statut' => 'actif',
+            'is_active' => true,
+        ]);
+
+        $ue = Ue::updateOrCreate(
+            ['code' => 'FSI-ALG110'],
+            [
+                'promotion_id' => $promos['L1']->id,
+                'semestre_id' => $semestre1->id,
+                'mention_id' => $mentionGl->id,
+                'annee_academique_id' => $annee->id,
+                'nom' => 'Algorithmique et structures de données',
+                'description' => 'Bases de l\'algorithmique',
+                'credit' => 8,
+                'statut' => 'actif',
+            ]
+        );
+
+        $ecCm = Ec::updateOrCreate(
+            ['code' => 'FSI-ALG110-CM'],
+            ['ue_id' => $ue->id, 'nom' => 'Algorithmique (CM)', 'coefficient' => 2, 'volume_horaire' => 30, 'credit' => 5, 'enseignant_id' => $enseignant->id, 'statut' => 'actif']
+        );
+        $ecTd = Ec::updateOrCreate(
+            ['code' => 'FSI-ALG110-TD'],
+            ['ue_id' => $ue->id, 'nom' => 'Algorithmique (TD)', 'coefficient' => 1, 'volume_horaire' => 15, 'credit' => 3, 'enseignant_id' => $enseignant->id, 'statut' => 'actif']
+        );
+        $ecCm->enseignants()->syncWithoutDetaching([$enseignant->id]);
+        $ecTd->enseignants()->syncWithoutDetaching([$enseignant->id]);
+
+        $cours = Cours::updateOrCreate(
+            ['ec_id' => $ecCm->id, 'promotion_id' => $promos['L1']->id, 'type' => 'CM'],
+            ['enseignant_id' => $enseignant->id, 'volume_horaire' => 30]
+        );
+
+        foreach ([['Lundi', '08:00', '12:00'], ['Mardi', '08:00', '12:00'], ['Mercredi', '10:00', '12:00'], ['Jeudi', '08:00', '10:00'], ['Vendredi', '08:00', '12:00']] as [$jour, $debut, $fin]) {
+            Disponibilite::updateOrCreate(
+                ['user_id' => $enseignant->id, 'jour' => $jour, 'heure_debut' => $debut],
+                ['semestre_id' => $semestre1->id, 'annee_academique_id' => $annee->id, 'heure_fin' => $fin, 'statut' => Disponibilite::STATUT_VALIDEE]
+            );
+        }
+
+        $placeholder = Auditoire::where('nom', 'EN-ATTENTE')->first();
+        $horaire = Horaire::updateOrCreate(
+            ['date' => '2026-09-21', 'heure_debut' => '08:00', 'promotion_id' => $promos['L1']->id],
+            [
+                'cours_id' => $cours->id,
+                'auditoire_id' => $placeholder?->id ?? Auditoire::first()?->id,
+                'enseignant_id' => $enseignant->id,
+                'semestre_id' => $semestre1->id,
+                'annee_academique_id' => $annee->id,
+                'domaine_id' => $domaine->id,
+                'filiere_id' => $filiereGl->id,
+                'mention_id' => $mentionGl->id,
+                'ue_id' => $ue->id,
+                'ec_id' => $ecCm->id,
+                'heure_fin' => '10:00',
+                'jour' => 'Lundi',
+                'effectif_attendu' => 55,
+                'statut' => Horaire::STATUT_VALIDE,
+            ]
+        );
+
+        $decanat = User::where('email', 'decanat@fsi.cd')->first();
+        if ($decanat) {
+            DemandeAuditoire::updateOrCreate(
+                ['created_by' => $decanat->id, 'date' => '2026-09-21', 'heure_debut' => '08:00', 'heure_fin' => '10:00'],
+                [
+                    'cours_id' => $cours->id,
+                    'enseignant_id' => $enseignant->id,
+                    'promotion_id' => $promos['L1']->id,
+                    'semestre_id' => $semestre1->id,
+                    'horaire_id' => $horaire->id,
+                    'ec_id' => $ecCm->id,
+                    'effectif_attendu' => 55,
+                    'statut' => DemandeAuditoire::STATUT_PENDING,
+                    'commentaire' => 'Besoin d\'un auditoire de 60 places pour le CM d\'algorithmique.',
+                ]
+            );
+        }
     }
 
     private function seedInfrastructure(): void
@@ -332,6 +531,11 @@ class DatabaseSeeder extends Seeder
                 );
             }
         }
+
+        Auditoire::updateOrCreate(
+            ['nom' => 'EN-ATTENTE'],
+            ['batiment_id' => $batiments['A']->id, 'capacite' => 9999, 'type' => 'attente', 'equipements' => 'Salle virtuelle en attente d\'attribution', 'disponibilite' => true, 'etat' => 'disponible']
+        );
     }
 
     private function seedDisponibilites(User $enseignant, Semestre $semestre): void

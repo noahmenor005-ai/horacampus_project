@@ -29,6 +29,23 @@ class AuthController extends Controller
     {
         $data = $request->validated();
 
+        // Tentative 0 : personnel par identifiant (email OU nom) + mot de passe
+        // Permet la connexion Décanat : Nom = FSI / Mot de passe = 098765
+        $identifiant = trim((string) ($data['identifiant'] ?? $data['email'] ?? ''));
+        if ($identifiant === '' && !empty($data['nom']) && !empty($data['password']) && empty($data['matricule'])) {
+            $identifiant = trim((string) $data['nom']);
+        }
+
+        if ($identifiant !== '' && !empty($data['password']) && empty($data['matricule'])) {
+            $user = $this->findStaffUser($identifiant);
+
+            if (!$user || !Hash::check($data['password'], $user->password)) {
+                return back()->withErrors(['email' => 'Identifiants invalides.'])->onlyInput('email', 'identifiant');
+            }
+
+            return $this->completeLogin($request, $user);
+        }
+
         // Tentative 1 : connexion étudiant par Nom + Matricule
         if (!empty($data['nom']) && !empty($data['matricule'])) {
             // Recherche insensible à la casse et aux espaces
@@ -111,7 +128,50 @@ class AuthController extends Controller
             return redirect()->intended(route('dashboard'));
         }
 
-        return back()->withErrors(['email' => 'Veuillez fournir soit Email+Mot de passe, soit Nom+Matricule.'])->onlyInput('email', 'nom');
+        return back()->withErrors(['email' => 'Veuillez fournir soit Email/Nom + Mot de passe, soit Nom + Matricule.'])->onlyInput('email', 'nom');
+    }
+
+    private function findStaffUser(string $identifiant): ?User
+    {
+        $identifiant = trim($identifiant);
+
+        if (filter_var($identifiant, FILTER_VALIDATE_EMAIL)) {
+            return User::where('email', $identifiant)->first();
+        }
+
+        return User::whereIn('role', [User::ROLE_ADMIN, User::ROLE_DECANAT, User::ROLE_ENSEIGNANT])
+            ->whereRaw('LOWER(TRIM(nom)) = ?', [mb_strtolower($identifiant)])
+            ->first();
+    }
+
+    private function completeLogin(Request $request, User $user)
+    {
+        if ($user->isEtudiant()) {
+            if (!$user->is_active) {
+                return back()->withErrors(['email' => 'Votre compte étudiant est désactivé.']);
+            }
+            if ($user->isRejected()) {
+                return back()->withErrors(['email' => 'Votre compte a été désactivé.']);
+            }
+        }
+
+        if ($user->isPending()) {
+            return back()->withErrors(['email' => 'Votre compte est en attente de validation par l\'administrateur.']);
+        }
+
+        if ($user->isRejected()) {
+            return back()->withErrors(['email' => 'Votre compte a été refusé. Contactez l\'administration.']);
+        }
+
+        if (isset($user->is_active) && !$user->is_active) {
+            return back()->withErrors(['email' => 'Votre compte est désactivé.']);
+        }
+
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+        $user->update(['last_login_at' => now()]);
+
+        return redirect()->intended(route('dashboard'));
     }
 
     // API pour les listes dépendantes (faculté -> domaine -> filière -> mention -> promotion)

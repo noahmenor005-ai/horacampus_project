@@ -109,7 +109,8 @@ class EnseignantController extends Controller
                 'telephone' => $enseignant->telephone,
                 'email' => $enseignant->email,
                 'faculte_id' => $enseignant->faculte_id,
-                'specialite' => $enseignant->specialite ?? null,
+                'specialite' => $data['specialite'] ?? $enseignant->specialite ?? null,
+                'grade' => $data['grade'] ?? $enseignant->grade ?? null,
                 'statut' => 'actif',
                 'is_active' => true,
             ]);
@@ -164,6 +165,8 @@ class EnseignantController extends Controller
                 'telephone' => $enseignant->telephone,
                 'email' => $enseignant->email,
                 'faculte_id' => $enseignant->faculte_id,
+                'specialite' => $enseignant->specialite,
+                'grade' => $enseignant->grade,
             ]);
         } catch (\Throwable $e) {}
 

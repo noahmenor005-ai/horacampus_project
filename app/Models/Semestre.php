@@ -11,6 +11,11 @@ class Semestre extends Model
 {
     use HasFactory;
 
+    public const LIBELLES = [
+        'Semestre 1' => 'Semestre 1',
+        'Semestre 2' => 'Semestre 2',
+    ];
+
     protected $fillable = ['annee_academique_id', 'libelle', 'date_debut', 'date_fin', 'actif'];
 
     protected $casts = [
@@ -42,5 +47,15 @@ class Semestre extends Model
     public function demandes(): HasMany
     {
         return $this->hasMany(DemandeAuditoire::class);
+    }
+
+    public function getNomAttribute(): string
+    {
+        return (string) $this->libelle;
+    }
+
+    public function statutLabel(): string
+    {
+        return $this->actif ? 'Actif' : 'Inactif';
     }
 }

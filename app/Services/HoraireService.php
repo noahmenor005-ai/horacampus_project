@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Models\Auditoire;
+use App\Models\Cours;
+use App\Models\Ec;
 use App\Models\Horaire;
 use App\Models\Promotion;
+use App\Support\TimeHelper;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -14,7 +17,16 @@ class HoraireService
 {
     public function filteredQuery(Request $request): Builder
     {
-        $query = Horaire::with(['cours.ec', 'auditoire.batiment', 'enseignant', 'promotion.mention', 'semestre']);
+        $query = Horaire::with([
+            'cours.ec',
+            'auditoire.batiment',
+            'enseignant',
+            'promotion.mention',
+            'semestre',
+            'ec',
+            'ue',
+            'demandes',
+        ]);
 
         $user = $request->user();
         if ($user) {
@@ -33,10 +45,14 @@ class HoraireService
             }
         }
 
-        foreach (['jour', 'promotion_id', 'enseignant_id', 'auditoire_id', 'semestre_id'] as $field) {
+        foreach (['promotion_id', 'enseignant_id', 'auditoire_id', 'semestre_id', 'ec_id', 'ue_id', 'domaine_id', 'filiere_id', 'mention_id'] as $field) {
             if ($request->filled($field)) {
                 $query->where($field, $request->input($field));
             }
+        }
+
+        if ($request->filled('jour')) {
+            $query->where('jour', $request->input('jour'));
         }
 
         if ($request->filled('date')) {
@@ -53,6 +69,7 @@ class HoraireService
             $term = '%' . $request->input('q') . '%';
             $query->where(function (Builder $builder) use ($term) {
                 $builder->whereHas('cours.ec', fn (Builder $q) => $q->where('nom', 'like', $term)->orWhere('code', 'like', $term))
+                    ->orWhereHas('ec', fn (Builder $q) => $q->where('nom', 'like', $term)->orWhere('code', 'like', $term))
                     ->orWhereHas('auditoire', fn (Builder $q) => $q->where('nom', 'like', $term))
                     ->orWhereHas('enseignant', fn (Builder $q) => $q->where('nom', 'like', $term)->orWhere('prenom', 'like', $term))
                     ->orWhereHas('promotion', fn (Builder $q) => $q->where('nom', 'like', $term));
@@ -64,6 +81,7 @@ class HoraireService
 
     public function create(array $data): Horaire
     {
+        $data = $this->normalize($data);
         $this->assertSchedulable($data);
 
         return Horaire::create($data);
@@ -71,6 +89,7 @@ class HoraireService
 
     public function update(Horaire $horaire, array $data): Horaire
     {
+        $data = $this->normalize($data);
         $this->assertSchedulable($data, $horaire);
         $horaire->update($data);
 
@@ -88,6 +107,12 @@ class HoraireService
     public function conflictsFor(array $data, ?Horaire $ignore = null): array
     {
         $messages = [];
+        $data = $this->normalize($data);
+
+        if (empty($data['heure_debut']) || empty($data['heure_fin']) || !TimeHelper::isValidRange($data['heure_debut'], $data['heure_fin'])) {
+            $messages[] = 'Les heures sont invalides : l\'heure de fin doit être postérieure à l\'heure de début.';
+            return $messages;
+        }
 
         $date = \Illuminate\Support\Carbon::parse($data['date'])->toDateString();
 
@@ -101,28 +126,57 @@ class HoraireService
             $query->whereKeyNot($ignore->getKey());
         }
 
-        $auditoire = $query->clone()->where('auditoire_id', $data['auditoire_id'])->first();
-        if ($auditoire) {
-            $messages[] = "L'auditoire « {$auditoire->auditoire->nom} » est déjà occupé(e) par un autre cours sur ce créneau.";
+        if (!empty($data['auditoire_id']) && !$this->isPlaceholderRoom((int) $data['auditoire_id'])) {
+            $auditoire = $query->clone()->where('auditoire_id', $data['auditoire_id'])->first();
+            if ($auditoire) {
+                $messages[] = "L'auditoire « " . optional($auditoire->auditoire)->nom . " » est déjà occupé sur ce créneau.";
+            }
         }
 
         $enseignant = $query->clone()->where('enseignant_id', $data['enseignant_id'])->first();
         if ($enseignant) {
-            $messages[] = "L'enseignant « {$enseignant->enseignant->nom_complet} » est déjà programmé(e) sur ce créneau.";
+            $nom = optional($enseignant->enseignant)->nom_complet ?: 'sélectionné';
+            $messages[] = "L'enseignant « {$nom} » a déjà un cours au même moment.";
         }
 
         $promotion = $query->clone()->where('promotion_id', $data['promotion_id'])->first();
         if ($promotion) {
-            $messages[] = "La promotion « {$promotion->promotion->nom} » a déjà un cours sur ce créneau.";
+            $nom = optional($promotion->promotion)->nom ?: 'sélectionnée';
+            $messages[] = "La promotion « {$nom} » a déjà un cours au même moment.";
+        }
+
+        $ecId = $data['ec_id'] ?? null;
+        if (!$ecId && !empty($data['cours_id'])) {
+            $ecId = optional(Cours::find($data['cours_id']))->ec_id;
+        }
+
+        if ($ecId) {
+            $ecConflict = $query->clone()
+                ->where(function (Builder $builder) use ($ecId) {
+                    $builder->where('ec_id', $ecId)
+                        ->orWhereHas('cours', fn (Builder $q) => $q->where('ec_id', $ecId));
+                })
+                ->first();
+
+            if ($ecConflict) {
+                $ec = Ec::find($ecId);
+                $messages[] = "L'EC « " . ($ec->nom ?? $ecId) . " » est déjà programmé au même moment.";
+            }
+        }
+
+        $dispo = app(DisponibiliteService::class);
+        if (!empty($data['enseignant_id']) && !$dispo->estDisponible((int) $data['enseignant_id'], $date, $data['heure_debut'], $data['heure_fin'])) {
+            $messages[] = "L'enseignant n'est pas disponible sur ce créneau (aucune disponibilité validée ne couvre ces heures).";
         }
 
         $effectif = (int) ($data['effectif_attendu'] ?? 0);
-        if (!$effectif) {
+        if (!$effectif && !empty($data['promotion_id'])) {
             $promotionModel = Promotion::find($data['promotion_id']);
             $effectif = $promotionModel ? (int) $promotionModel->effectif : 0;
         }
-        $auditoireModel = $data['auditoire_id'] ? Auditoire::find($data['auditoire_id']) : null;
-        if ($auditoireModel && $effectif > $auditoireModel->capacite) {
+
+        $auditoireModel = !empty($data['auditoire_id']) ? Auditoire::find($data['auditoire_id']) : null;
+        if ($auditoireModel && !$this->isPlaceholderRoom((int) $auditoireModel->id) && $effectif > $auditoireModel->capacite) {
             $messages[] = "La capacité de l'auditoire « {$auditoireModel->nom} » ({$auditoireModel->capacite} places) est insuffisante pour un effectif attendu de {$effectif} étudiants.";
         }
 
@@ -136,10 +190,10 @@ class HoraireService
 
     public function conflictCount(): int
     {
-        $horaires = Horaire::all()->groupBy(fn ($h) => $h->date->format('Y-m-d'));
+        $horaires = Horaire::all()->groupBy(fn ($h) => optional($h->date)->format('Y-m-d'));
 
         $conflicts = 0;
-        foreach ($horaires as $date => $group) {
+        foreach ($horaires as $group) {
             $list = $group->all();
             for ($i = 0; $i < count($list); $i++) {
                 for ($j = $i + 1; $j < count($list); $j++) {
@@ -169,4 +223,37 @@ class HoraireService
             ->get()
             ->mapWithKeys(fn ($row) => [$row->date->format('Y-m-d') => (int) $row->total]);
     }
+
+    public function isPlaceholderRoom(?int $auditoireId): bool
+    {
+        if (!$auditoireId) {
+            return true;
+        }
+
+        $room = Auditoire::find($auditoireId);
+
+        return $room && $room->nom === 'EN-ATTENTE';
+    }
+
+    public function placeholderAuditoire(): ?Auditoire
+    {
+        return Auditoire::where('nom', 'EN-ATTENTE')->first();
+    }
+
+    private function normalize(array $data): array
+    {
+        if (!empty($data['heure_debut'])) {
+            $data['heure_debut'] = TimeHelper::normalize($data['heure_debut']);
+        }
+        if (!empty($data['heure_fin'])) {
+            $data['heure_fin'] = TimeHelper::normalize($data['heure_fin']);
+        }
+
+        if (!empty($data['date']) && empty($data['jour'])) {
+            $data['jour'] = Horaire::jourFr($data['date']);
+        }
+
+        return $data;
+    }
+
 }

@@ -52,4 +52,25 @@ trait ScopesFaculty
             ? Ue::whereHas('promotion.mention.filiere.domaine', fn ($q) => $q->where('faculte_id', $this->facultyId()))
             : Ue::query();
     }
+
+    protected function scopeEcs()
+    {
+        return $this->isScoped()
+            ? \App\Models\Ec::whereHas('ue.promotion.mention.filiere.domaine', fn ($q) => $q->where('faculte_id', $this->facultyId()))
+            : \App\Models\Ec::query();
+    }
+
+    protected function scopeEnseignants()
+    {
+        $query = \App\Models\User::where('role', \App\Models\User::ROLE_ENSEIGNANT)->orderBy('nom');
+
+        return $this->isScoped() ? $query->where('faculte_id', $this->facultyId()) : $query;
+    }
+
+    protected function scopeEtudiants()
+    {
+        $query = \App\Models\User::where('role', \App\Models\User::ROLE_ETUDIANT)->orderBy('nom');
+
+        return $this->isScoped() ? $query->where('faculte_id', $this->facultyId()) : $query;
+    }
 }

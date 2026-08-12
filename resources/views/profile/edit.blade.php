@@ -32,6 +32,11 @@
                     @error('nom')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="mb-3">
+                    <label class="form-label">Postnom</label>
+                    <input name="postnom" value="{{ old('postnom', auth()->user()->postnom) }}" class="form-control @error('postnom') is-invalid @enderror">
+                    @error('postnom')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Prénom</label>
                     <input name="prenom" value="{{ old('prenom', auth()->user()->prenom) }}" class="form-control @error('prenom') is-invalid @enderror" required>
                     @error('prenom')<div class="invalid-feedback">{{ $message }}</div>@enderror

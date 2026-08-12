@@ -13,6 +13,10 @@
 <form method="GET" class="surface p-3 mb-3">
     <div class="row g-2 align-items-end">
         <div class="col-md-3">
+            <label class="form-label">Rechercher</label>
+            <input name="q" value="{{ request('q') }}" class="form-control" placeholder="Cours, enseignant, promotion…">
+        </div>
+        <div class="col-md-3">
             <label class="form-label">Statut</label>
             <select name="statut" class="form-select">
                 <option value="">Tous</option>

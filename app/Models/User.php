@@ -70,6 +70,8 @@ class User extends Authenticatable
         'annee_academique_id',
         'photo_path',
         'last_login_at',
+        'specialite',
+        'grade',
     ];
 
     protected $hidden = [

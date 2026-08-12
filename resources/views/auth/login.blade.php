@@ -26,7 +26,8 @@
             <p class="text-white-50">Portail académique pour planifier les cours, les salles et les emplois du temps avec contrôle automatique des conflits.</p>
             <div class="mt-4 p-3 rounded" style="background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12)">
                 <div class="small text-white-50 mb-1">Accès par rôle</div>
-                <div class="small"><i class="bi bi-shield-lock"></i> <strong>Personnel</strong> : Email + Mot de passe (Admin, Décanat, Enseignant)</div>
+                <div class="small"><i class="bi bi-shield-lock"></i> <strong>Personnel</strong> : Email ou Nom + Mot de passe (Admin, Décanat, Enseignant)</div>
+                <div class="small mt-1"><i class="bi bi-briefcase"></i> Décanat FSI : Nom <strong>FSI</strong> / Mot de passe <strong>098765</strong></div>
                 <div class="small mt-1"><i class="bi bi-person-badge"></i> <strong>Étudiant</strong> : Nom + Matricule (fournis par le Décanat)</div>
                 <div class="small text-white-50 mt-2">Les comptes étudiants/enseignants sont créés exclusivement par le Décanat de votre faculté.</div>
             </div>
@@ -49,8 +50,8 @@
                     <form method="POST" action="{{ route('login') }}">
                         @csrf
                         <div class="mb-3">
-                            <label class="form-label">Adresse e-mail</label>
-                            <input name="email" type="email" value="{{ old('email') }}" class="form-control form-control-lg" placeholder="ex: decanat@fst.cd" required>
+                            <label class="form-label">Identifiant (email ou nom)</label>
+                            <input name="identifiant" type="text" value="{{ old('identifiant', old('email')) }}" class="form-control form-control-lg" placeholder="ex: FSI ou decanat@fsi.cd" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mot de passe</label>
