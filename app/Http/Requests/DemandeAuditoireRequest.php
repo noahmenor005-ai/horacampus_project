@@ -15,13 +15,18 @@ class DemandeAuditoireRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cours_id' => ['required', 'exists:cours,id'],
+            'cours_id' => ['nullable', 'exists:cours,id'],
+            'horaire_id' => ['nullable', 'exists:horaires,id'],
+            'ec_id' => ['nullable', 'exists:ecs,id'],
+            'enseignant_id' => ['nullable', 'exists:users,id'],
+            'promotion_id' => ['nullable', 'exists:promotions,id'],
             'semestre_id' => ['nullable', 'exists:semestres,id'],
-            'date' => ['required', 'date', 'after_or_equal:today'],
-            'heure_debut' => ['required', 'date_format:H:i'],
-            'heure_fin' => ['required', 'date_format:H:i', 'after:heure_debut'],
+            'date' => ['required', 'date'],
+            'heure_debut' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+            'heure_fin' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'effectif_attendu' => ['required', 'integer', 'min:1'],
             'note' => ['nullable', 'string', 'max:500'],
+            'commentaire' => ['nullable', 'string', 'max:500'],
         ];
     }
 

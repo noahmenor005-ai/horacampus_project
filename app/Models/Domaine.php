@@ -11,7 +11,11 @@ class Domaine extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['faculte_id', 'nom', 'description'];
+    protected $fillable = ['faculte_id', 'nom', 'description', 'actif'];
+
+    protected $casts = [
+        'actif' => 'boolean',
+    ];
 
     public function faculte(): BelongsTo
     {
@@ -21,5 +25,20 @@ class Domaine extends Model
     public function filieres(): HasMany
     {
         return $this->hasMany(Filiere::class);
+    }
+
+    public function scopeForFaculty($query, $faculteId)
+    {
+        return $query->where('faculte_id', $faculteId);
+    }
+
+    public function scopeActif($query)
+    {
+        return $query->where('actif', true);
+    }
+
+    public function statutLabel(): string
+    {
+        return $this->actif ? 'Actif' : 'Inactif';
     }
 }

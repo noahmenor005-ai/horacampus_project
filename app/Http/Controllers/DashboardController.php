@@ -6,8 +6,14 @@ use App\Models\Auditoire;
 use App\Models\Cours;
 use App\Models\DemandeAuditoire;
 use App\Models\Disponibilite;
+use App\Models\Domaine;
+use App\Models\Ec;
 use App\Models\Faculte;
+use App\Models\Filiere;
 use App\Models\Horaire;
+use App\Models\Mention;
+use App\Models\Promotion;
+use App\Models\Ue;
 use App\Models\User;
 use App\Services\HoraireService;
 

@@ -20,7 +20,15 @@ class Disponibilite extends Model
         self::STATUT_REFUSEE => 'Refusée',
     ];
 
-    protected $fillable = ['user_id', 'semestre_id', 'jour', 'heure_debut', 'heure_fin', 'statut'];
+    protected $fillable = [
+        'user_id',
+        'semestre_id',
+        'annee_academique_id',
+        'jour',
+        'heure_debut',
+        'heure_fin',
+        'statut',
+    ];
 
     public function user(): BelongsTo
     {
@@ -30,6 +38,11 @@ class Disponibilite extends Model
     public function semestre(): BelongsTo
     {
         return $this->belongsTo(Semestre::class);
+    }
+
+    public function anneeAcademique(): BelongsTo
+    {
+        return $this->belongsTo(AnneeAcademique::class);
     }
 
     public function statutLabel(): string

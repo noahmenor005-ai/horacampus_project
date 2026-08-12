@@ -49,10 +49,13 @@
                 <input type="number" name="effectif_attendu" value="{{ old('effectif_attendu', $demande->effectif_attendu) }}" min="1" class="form-control @error('effectif_attendu') is-invalid @enderror" required>
                 @error('effectif_attendu')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
+            @if($demande->horaire_id)
+                <input type="hidden" name="horaire_id" value="{{ $demande->horaire_id }}">
+            @endif
             <div class="col-12">
-                <label class="form-label">Note</label>
-                <textarea name="note" rows="3" class="form-control @error('note') is-invalid @enderror">{{ old('note', $demande->note) }}</textarea>
-                @error('note')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <label class="form-label">Commentaire</label>
+                <textarea name="commentaire" rows="3" class="form-control @error('commentaire') is-invalid @enderror">{{ old('commentaire', $demande->commentaire ?? $demande->note) }}</textarea>
+                @error('commentaire')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
         </div>
         <div class="alert alert-info mt-4 mb-0">

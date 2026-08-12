@@ -11,9 +11,14 @@ class Promotion extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['mention_id', 'annee_academique_id', 'nom', 'niveau', 'effectif'];
+    public const NIVEAUX = ['L1' => 'L1', 'L2' => 'L2', 'L3' => 'L3', 'M1' => 'M1', 'M2' => 'M2'];
 
-    protected $casts = ['effectif' => 'integer'];
+    protected $fillable = ['mention_id', 'annee_academique_id', 'nom', 'niveau', 'effectif', 'actif'];
+
+    protected $casts = [
+        'effectif' => 'integer',
+        'actif' => 'boolean',
+    ];
 
     public function mention(): BelongsTo
     {
@@ -53,5 +58,20 @@ class Promotion extends Model
     public function faculte(): ?Faculte
     {
         return optional($this->mention)->faculte();
+    }
+
+    public function scopeForFaculty($query, $faculteId)
+    {
+        return $query->whereHas('mention.filiere.domaine', fn ($q) => $q->where('faculte_id', $faculteId));
+    }
+
+    public function scopeActif($query)
+    {
+        return $query->where('actif', true);
+    }
+
+    public function statutLabel(): string
+    {
+        return $this->actif ? 'Actif' : 'Inactif';
     }
 }

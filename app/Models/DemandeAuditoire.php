@@ -13,12 +13,14 @@ class DemandeAuditoire extends Model
 
     protected $table = 'demandes_auditoire';
 
+    public const STATUT_PENDING = 'pending';
     public const STATUT_EN_ATTENTE = 'en_attente';
     public const STATUT_ACCEPTEE = 'acceptee';
     public const STATUT_REFUSEE = 'refusee';
     public const STATUT_MODIFIEE = 'modifiee';
 
     public const STATUTS = [
+        self::STATUT_PENDING => 'En attente',
         self::STATUT_EN_ATTENTE => 'En attente',
         self::STATUT_ACCEPTEE => 'Acceptée',
         self::STATUT_REFUSEE => 'Refusée',
@@ -32,6 +34,8 @@ class DemandeAuditoire extends Model
         'auditoire_id',
         'semestre_id',
         'created_by',
+        'horaire_id',
+        'ec_id',
         'date',
         'heure_debut',
         'heure_fin',
@@ -39,6 +43,7 @@ class DemandeAuditoire extends Model
         'statut',
         'motif_refus',
         'note',
+        'commentaire',
     ];
 
     protected $casts = [
@@ -76,6 +81,16 @@ class DemandeAuditoire extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function horaire(): BelongsTo
+    {
+        return $this->belongsTo(Horaire::class);
+    }
+
+    public function ec(): BelongsTo
+    {
+        return $this->belongsTo(Ec::class);
+    }
+
     public function horaires(): HasMany
     {
         return $this->hasMany(Horaire::class, 'source_demande_id');
@@ -86,18 +101,29 @@ class DemandeAuditoire extends Model
         return self::STATUTS[$this->statut] ?? $this->statut;
     }
 
+    public function estEnAttente(): bool
+    {
+        return in_array($this->statut, [self::STATUT_PENDING, self::STATUT_EN_ATTENTE], true);
+    }
+
     public function estModifiable(): bool
     {
-        return in_array($this->statut, [self::STATUT_EN_ATTENTE, self::STATUT_MODIFIEE], true);
+        return in_array($this->statut, [self::STATUT_EN_ATTENTE, self::STATUT_PENDING, self::STATUT_MODIFIEE], true);
     }
 
     public function badgeClass(): string
     {
         return [
+            self::STATUT_PENDING => 'warning',
             self::STATUT_EN_ATTENTE => 'warning',
             self::STATUT_ACCEPTEE => 'success',
             self::STATUT_REFUSEE => 'danger',
             self::STATUT_MODIFIEE => 'info',
         ][$this->statut] ?? 'secondary';
+    }
+
+    public function scopeEnAttente($query)
+    {
+        return $query->whereIn('statut', [self::STATUT_PENDING, self::STATUT_EN_ATTENTE]);
     }
 }

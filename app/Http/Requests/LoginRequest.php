@@ -14,22 +14,25 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Auth personnel : email + password
-            'email' => ['nullable', 'email', 'required_without:matricule'],
-            'password' => ['nullable', 'string', 'required_with:email'],
-            // Auth étudiant : nom + matricule
-            'nom' => ['nullable', 'string', 'required_without:email'],
-            'matricule' => ['nullable', 'string', 'required_without:email'],
+            'identifiant' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email'],
+            'password' => ['nullable', 'string'],
+            'nom' => ['nullable', 'string'],
+            'matricule' => ['nullable', 'string'],
             'remember' => ['sometimes', 'boolean'],
         ];
     }
 
-    public function messages(): array
+    public function withValidator($validator): void
     {
-        return [
-            'email.required_without' => 'Veuillez saisir votre adresse e-mail ou vos identifiants étudiant (Nom + Matricule).',
-            'nom.required_without' => 'Le nom est requis pour la connexion étudiant.',
-            'matricule.required_without' => 'Le matricule est requis pour la connexion étudiant.',
-        ];
+        $validator->after(function ($validator) {
+            $hasStudent = $this->filled('nom') && $this->filled('matricule');
+            $hasStaff = ($this->filled('identifiant') || $this->filled('email') || ($this->filled('nom') && $this->filled('password') && !$this->filled('matricule')))
+                && $this->filled('password');
+
+            if (!$hasStudent && !$hasStaff) {
+                $validator->errors()->add('email', 'Veuillez fournir un identifiant (email ou nom) et un mot de passe, ou Nom + Matricule pour un étudiant.');
+            }
+        });
     }
 }

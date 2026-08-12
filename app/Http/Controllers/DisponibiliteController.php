@@ -37,6 +37,14 @@ class DisponibiliteController extends Controller
             $query->where('user_id', $request->input('enseignant_id'));
         }
 
+        if ($request->filled('q')) {
+            $term = '%' . $request->input('q') . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('jour', 'like', $term)
+                    ->orWhereHas('user', fn ($u) => $u->where('nom', 'like', $term)->orWhere('prenom', 'like', $term));
+            });
+        }
+
         $disponibilites = $query->paginate(12)->withQueryString();
 
         return view('disponibilites.index', [
@@ -53,6 +61,7 @@ class DisponibiliteController extends Controller
             'disponibilite' => new Disponibilite(),
             'enseignants' => $this->enseignantsList(),
             'semestres' => Semestre::orderByDesc('id')->get()->pluck('libelle', 'id'),
+            'annees' => \App\Models\AnneeAcademique::orderByDesc('libelle')->pluck('libelle', 'id'),
         ]);
     }
 
@@ -81,6 +90,7 @@ class DisponibiliteController extends Controller
             'disponibilite' => $disponibilite,
             'enseignants' => $this->enseignantsList(),
             'semestres' => Semestre::orderByDesc('id')->get()->pluck('libelle', 'id'),
+            'annees' => \App\Models\AnneeAcademique::orderByDesc('libelle')->pluck('libelle', 'id'),
         ]);
     }
 

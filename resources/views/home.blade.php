@@ -97,7 +97,6 @@
                 <p class="lead hero-subtitle mt-4">Centralisez les demandes d’auditoires, suivez les horaires et pilotez votre organisation LMD depuis une interface moderne et intuitive.</p>
                 <div class="d-flex flex-wrap gap-3 mt-5 hero-btns">
                     <a href="{{ route('login') }}" class="btn btn-light btn-lg shadow-sm">Se connecter</a>
-                    <a href="{{ route('register') }}" class="btn btn-outline-light btn-lg shadow-sm">Créer un compte</a>
                 </div>
             </section>
 

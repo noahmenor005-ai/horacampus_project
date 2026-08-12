@@ -34,4 +34,15 @@ class AnneeAcademique extends Model
     {
         return (bool) $this->active;
     }
+
+    public function statutLabel(): string
+    {
+        return $this->active ? 'Active' : 'Inactive';
+    }
+
+    public function activerUniquement(): void
+    {
+        static::query()->where('id', '!=', $this->id)->update(['active' => false]);
+        $this->update(['active' => true]);
+    }
 }

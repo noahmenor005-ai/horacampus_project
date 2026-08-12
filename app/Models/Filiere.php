@@ -11,7 +11,11 @@ class Filiere extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['domaine_id', 'nom', 'description'];
+    protected $fillable = ['domaine_id', 'nom', 'description', 'actif'];
+
+    protected $casts = [
+        'actif' => 'boolean',
+    ];
 
     public function domaine(): BelongsTo
     {
@@ -21,5 +25,25 @@ class Filiere extends Model
     public function mentions(): HasMany
     {
         return $this->hasMany(Mention::class);
+    }
+
+    public function faculte(): ?Faculte
+    {
+        return optional($this->domaine)->faculte;
+    }
+
+    public function scopeForFaculty($query, $faculteId)
+    {
+        return $query->whereHas('domaine', fn ($q) => $q->where('faculte_id', $faculteId));
+    }
+
+    public function scopeActif($query)
+    {
+        return $query->where('actif', true);
+    }
+
+    public function statutLabel(): string
+    {
+        return $this->actif ? 'Actif' : 'Inactif';
     }
 }

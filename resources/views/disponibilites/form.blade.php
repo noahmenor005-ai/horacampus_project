@@ -22,6 +22,16 @@
                 </div>
             @endif
             <div class="col-md-6">
+                <label class="form-label">Année académique</label>
+                <select name="annee_academique_id" class="form-select @error('annee_academique_id') is-invalid @enderror">
+                    <option value="">Non précisée</option>
+                    @foreach(($annees ?? []) as $id => $label)
+                        <option value="{{ $id }}" @selected(old('annee_academique_id', $disponibilite->annee_academique_id) == $id)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('annee_academique_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-md-6">
                 <label class="form-label">Semestre</label>
                 <select name="semestre_id" class="form-select @error('semestre_id') is-invalid @enderror">
                     <option value="">Non précisé</option>

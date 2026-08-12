@@ -52,9 +52,9 @@
         <dt class="col-sm-3">Créée par</dt>
         <dd class="col-sm-9">{{ $demande->createur?->nom_complet ?: '—' }}</dd>
 
-        @if($demande->note)
-            <dt class="col-sm-3">Note</dt>
-            <dd class="col-sm-9">{{ $demande->note }}</dd>
+        @if($demande->note || $demande->commentaire)
+            <dt class="col-sm-3">Commentaire</dt>
+            <dd class="col-sm-9">{{ $demande->commentaire ?: $demande->note }}</dd>
         @endif
     </dl>
 

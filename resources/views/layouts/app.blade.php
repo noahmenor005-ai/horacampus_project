@@ -155,27 +155,40 @@
 
 <aside class="app-sidebar">
     <a class="brand" href="{{ route('dashboard') }}"><i class="bi bi-calendar2-week"></i><span>HoraCampus</span></a>
-    <a class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2"></i>Tableau de bord</a>
-
-    {{-- Commun à tous : Horaires en consultation --}}
-    <a class="sidebar-link {{ request()->routeIs('horaires.*') ? 'active' : '' }}" href="{{ route('horaires.index') }}"><i class="bi bi-calendar3"></i>Horaires</a>
+    @unless(auth()->user() && auth()->user()->isDecanat())
+        <a class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2"></i>Tableau de bord</a>
+    @endunless
 
     {{-- DECANAT --}}
     @if(auth()->user() && auth()->user()->isDecanat())
-        <p class="nav-label">Gestion Décanat</p>
-        <a class="sidebar-link {{ request()->routeIs('etudiants.*') ? 'active' : '' }}" href="{{ route('etudiants.index') }}"><i class="bi bi-people"></i>Étudiants</a>
-        <a class="sidebar-link {{ request()->routeIs('enseignants.*') ? 'active' : '' }}" href="{{ route('enseignants.index') }}"><i class="bi bi-person-workspace"></i>Enseignants</a>
-        <a class="sidebar-link {{ request()->routeIs('promotions.*') ? 'active' : '' }}" href="{{ route('promotions.index') }}"><i class="bi bi-layers"></i>Promotions</a>
-        <a class="sidebar-link {{ request()->routeIs('cours.*') ? 'active' : '' }}" href="{{ route('cours.index') }}"><i class="bi bi-journal-bookmark"></i>Cours</a>
-        <a class="sidebar-link {{ request()->routeIs('disponibilites.*') ? 'active' : '' }}" href="{{ route('disponibilites.index') }}"><i class="bi bi-clock-history"></i>Disponibilités</a>
-        <a class="sidebar-link {{ request()->routeIs('demandes.*') ? 'active' : '' }}" href="{{ route('demandes.index') }}"><i class="bi bi-send"></i>Demandes de salles</a>
-        <p class="nav-label">Organisation LMD</p>
-        @foreach(['domaines' => 'Domaines', 'filieres' => 'Filières', 'mentions' => 'Mentions', 'annees' => 'Années académiques', 'semestres' => 'Semestres', 'ues' => 'Unités d\'enseignement', 'ecs' => 'Éléments constitutifs'] as $resource => $label)
-            <a class="sidebar-link {{ request()->is('gestion/'.$resource.'*') ? 'active' : '' }}" href="{{ route('lmd.index', $resource) }}"><i class="bi bi-diagram-3"></i>{{ $label }}</a>
-        @endforeach
-        <p class="nav-label">Planning</p>
-        <a class="sidebar-link" href="{{ route('horaires.index') }}"><i class="bi bi-calendar-week"></i>Horaires détaillés</a>
-        <a class="sidebar-link" href="{{ route('demandes.index') }}"><i class="bi bi-inbox"></i>Historique demandes</a>
+        <a class="sidebar-link {{ request()->routeIs('dashboard') || request()->routeIs('decanat.dashboard') ? 'active' : '' }}" href="{{ route('decanat.dashboard') }}"><i class="bi bi-grid-1x2"></i>Tableau de bord</a>
+        <p class="nav-label">Organisation académique</p>
+        <a class="sidebar-link {{ request()->routeIs('decanat.faculte.*') ? 'active' : '' }}" href="{{ route('decanat.faculte.show') }}"><i class="bi bi-building"></i>Faculté</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.domaines.*') ? 'active' : '' }}" href="{{ route('decanat.domaines.index') }}"><i class="bi bi-diagram-3"></i>Domaines</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.filieres.*') ? 'active' : '' }}" href="{{ route('decanat.filieres.index') }}"><i class="bi bi-share"></i>Filières</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.mentions.*') ? 'active' : '' }}" href="{{ route('decanat.mentions.index') }}"><i class="bi bi-bookmark"></i>Mentions</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.promotions.*') ? 'active' : '' }}" href="{{ route('decanat.promotions.index') }}"><i class="bi bi-layers"></i>Promotions</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.annees-academiques.*') ? 'active' : '' }}" href="{{ route('decanat.annees-academiques.index') }}"><i class="bi bi-calendar2-range"></i>Années académiques</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.semestres.*') ? 'active' : '' }}" href="{{ route('decanat.semestres.index') }}"><i class="bi bi-calendar2"></i>Semestres</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.ues.*') ? 'active' : '' }}" href="{{ route('decanat.ues.index') }}"><i class="bi bi-journal-text"></i>UE</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.ecs.*') ? 'active' : '' }}" href="{{ route('decanat.ecs.index') }}"><i class="bi bi-list-nested"></i>EC</a>
+        <p class="nav-label">Ressources humaines</p>
+        <a class="sidebar-link {{ request()->routeIs('decanat.enseignants.*') || request()->routeIs('enseignants.*') ? 'active' : '' }}" href="{{ route('decanat.enseignants.index') }}"><i class="bi bi-person-workspace"></i>Enseignants</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.disponibilites.*') || request()->routeIs('disponibilites.*') ? 'active' : '' }}" href="{{ route('decanat.disponibilites.index') }}"><i class="bi bi-clock-history"></i>Disponibilités des enseignants</a>
+        <p class="nav-label">Étudiants</p>
+        <a class="sidebar-link {{ request()->routeIs('decanat.etudiants.*') || request()->routeIs('etudiants.*') ? 'active' : '' }}" href="{{ route('decanat.etudiants.index') }}"><i class="bi bi-people"></i>Étudiants</a>
+        <p class="nav-label">Planification</p>
+        <a class="sidebar-link {{ request()->routeIs('decanat.horaires.*') || request()->routeIs('horaires.*') ? 'active' : '' }}" href="{{ route('decanat.horaires.index') }}"><i class="bi bi-calendar-week"></i>Horaires</a>
+        <a class="sidebar-link {{ request()->routeIs('decanat.demandes-salles.*') || request()->routeIs('demandes.*') ? 'active' : '' }}" href="{{ route('decanat.demandes-salles.index') }}"><i class="bi bi-door-open"></i>Demandes d'auditoires</a>
+        <p class="nav-label">Profil</p>
+        <a class="sidebar-link {{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ route('profile.edit') }}"><i class="bi bi-person-circle"></i>Mon profil</a>
+        <a class="sidebar-link" href="{{ route('profile.edit') }}"><i class="bi bi-pencil-square"></i>Modifier mon profil</a>
+        <form method="POST" action="{{ route('logout') }}" class="m-0">
+            @csrf
+            <button type="submit" class="sidebar-link w-100 border-0 bg-transparent text-start"><i class="bi bi-box-arrow-right"></i>Déconnexion</button>
+        </form>
+    @else
+        <a class="sidebar-link {{ request()->routeIs('horaires.*') ? 'active' : '' }}" href="{{ route('horaires.index') }}"><i class="bi bi-calendar3"></i>Horaires</a>
     @endif
 
     {{-- ENSEIGNANT --}}
