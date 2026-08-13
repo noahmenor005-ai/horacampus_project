@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="HoraCampus">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B3B6A"/>
+      <stop offset="1" stop-color="#082440"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#g)"/>
+  <path d="M12 28h40v22a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V28z" fill="#F7F1DE"/>
+  <path d="M10 24l22-12 22 12v6H10v-6z" fill="#D4A017"/>
+  <rect x="28" y="38" width="8" height="16" rx="1" fill="#082440"/>
+  <circle cx="46" cy="18" r="8" fill="#082440" stroke="#F7F1DE" stroke-width="2"/>
+  <path d="M46 13v6l4 2" fill="none" stroke="#D4A017" stroke-width="2" stroke-linecap="round"/>
+</svg>

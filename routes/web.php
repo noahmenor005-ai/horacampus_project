@@ -65,6 +65,10 @@ Route::middleware('auth')->group(function () {
     Route::put('profil', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profil/mot-de-passe', [ProfileController::class, 'password'])->name('profile.password');
 
+    Route::get('notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/{notification}/lire', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('notifications/tout-lire', [\App\Http\Controllers\NotificationController::class, 'markAll'])->name('notifications.read-all');
+
     Route::get('horaires', [HoraireController::class, 'index'])->name('horaires.index');
     Route::get('horaires-impression', [HoraireController::class, 'print'])->name('horaires.print');
     Route::get('horaires-export', [HoraireController::class, 'export'])->name('horaires.export');
@@ -213,6 +217,11 @@ Route::middleware('auth')->group(function () {
         Route::put('utilisateurs/{user}', [UserController::class, 'update'])->name('users.update');
         Route::patch('utilisateurs/{user}/statut', [UserController::class, 'updateStatus'])->name('users.status');
         Route::delete('utilisateurs/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('decanats', [UserController::class, 'decanats'])->name('decanats.index');
+        Route::get('attributions', [\App\Http\Controllers\AttributionController::class, 'index'])->name('attributions.index');
+        Route::get('parametres', [\App\Http\Controllers\SettingController::class, 'edit'])->name('settings.edit');
+        Route::put('parametres', [\App\Http\Controllers\SettingController::class, 'update'])->name('settings.update');
 
         Route::get('rapports', [RapportController::class, 'index'])->name('rapports.index');
         Route::get('rapports/pdf', [RapportController::class, 'pdf'])->name('rapports.pdf');

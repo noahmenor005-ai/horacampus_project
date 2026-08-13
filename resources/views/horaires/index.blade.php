@@ -6,7 +6,8 @@
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
     <h1 class="h3 mb-0">Horaires</h1>
     <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-outline-secondary" target="_blank" href="{{ route('horaires.pdf', request()->query()) }}"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+        <a class="btn btn-outline-secondary {{ ($vue ?? 'grille') === 'grille' ? 'active' : '' }}" href="{{ request()->fullUrlWithQuery(['vue' => 'grille']) }}"><i class="bi bi-grid-3x3"></i> Grille</a>
+        <a class="btn btn-outline-secondary {{ ($vue ?? '') === 'liste' ? 'active' : '' }}" href="{{ request()->fullUrlWithQuery(['vue' => 'liste']) }}"><i class="bi bi-list-ul"></i> Liste</a>
         <a class="btn btn-outline-secondary" target="_blank" href="{{ route('horaires.print', request()->query()) }}"><i class="bi bi-printer"></i> Imprimer</a>
         <a class="btn btn-outline-success" href="{{ route('horaires.export', request()->query()) }}"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
         @can('create', \App\Models\Horaire::class)
@@ -15,15 +16,12 @@
     </div>
 </div>
 
-<form class="surface p-3 mb-3" method="GET" action="{{ route('horaires.index') }}" id="filterForm">
+<form class="surface p-3 mb-3" method="GET" action="{{ auth()->user()->isDecanat() ? route('decanat.horaires.index') : route('horaires.index') }}" id="filterForm">
+    <input type="hidden" name="vue" value="{{ $vue ?? 'grille' }}">
     <div class="row g-2 align-items-end">
         <div class="col-lg-3">
             <label class="form-label" for="q">Recherche</label>
             <input id="q" type="text" name="q" value="{{ request('q') }}" class="form-control" placeholder="Cours, enseignant, salle, promotion...">
-        </div>
-        <div class="col-md-3 col-lg-2">
-            <label class="form-label" for="date">Date</label>
-            <input id="date" type="date" name="date" value="{{ request('date') }}" class="form-control">
         </div>
         <div class="col-md-3 col-lg-2">
             <label class="form-label" for="jour">Jour</label>
@@ -52,33 +50,22 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-3 col-lg-2">
-            <label class="form-label" for="auditoire_id">Salle</label>
-            <select id="auditoire_id" name="auditoire_id" class="form-select">
-                <option value="">Toutes</option>
-                @foreach($auditoires as $id => $label)<option value="{{ $id }}" @selected(request('auditoire_id') == $id)>{{ $label }}</option>@endforeach
-            </select>
-        </div>
-        <div class="col-md-3 col-lg-2">
-            <label class="form-label" for="semestre_id">Semestre</label>
-            <select id="semestre_id" name="semestre_id" class="form-select">
-                <option value="">Tous</option>
-                @foreach($semestres as $id => $label)
-                    @php $sid = is_object($label) ? $label->id : $id; $slabel = is_object($label) ? $label->libelle : $label; @endphp
-                    <option value="{{ $sid }}" @selected(request('semestre_id') == $sid)>{{ $slabel }}</option>
-                @endforeach
-            </select>
-        </div>
         <div class="col-lg-2">
             <button class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrer</button>
         </div>
     </div>
 </form>
 
+@if(($vue ?? 'grille') !== 'liste')
+    <div class="surface p-3 mb-3">
+        @include('partials.timetable-grid', ['grille' => $grille])
+    </div>
+@endif
+
 <div class="surface p-3 table-responsive">
     <table class="table align-middle mb-0">
         <thead>
-        <tr><th>Jour</th><th>Date</th><th>Heure</th><th>Cours</th><th>Salle</th><th>Enseignant</th><th>Promotion</th><th>Statut</th><th class="text-end">Actions</th></tr>
+        <tr><th>Jour</th><th>Date</th><th>Heure</th><th>EC</th><th>Salle</th><th>Enseignant</th><th>Promotion</th><th>Statut</th><th class="text-end">Actions</th></tr>
         </thead>
         <tbody>
         @forelse($horaires as $h)
@@ -86,8 +73,8 @@
                 <td><span class="badge text-bg-light">{{ $h->jour }}</span></td>
                 <td>{{ $h->date?->format('d/m/Y') }}</td>
                 <td>{{ substr($h->heure_debut, 0, 5) }} - {{ substr($h->heure_fin, 0, 5) }}</td>
-                <td>{{ optional($h->cours)->intitule }}</td>
-                <td>{{ optional($h->auditoire)->nom }}</td>
+                <td>{{ optional($h->ec)->nom ?: optional($h->cours)->intitule }}</td>
+                <td>{{ optional($h->auditoire)->nom === 'EN-ATTENTE' ? 'En attente' : optional($h->auditoire)->nom }}</td>
                 <td>{{ optional($h->enseignant)->nom_complet }}</td>
                 <td>{{ optional($h->promotion)->nom }}</td>
                 <td><span class="badge text-bg-{{ $h->badgeClass() }}">{{ $h->statutLabel() }}</span></td>
@@ -106,14 +93,14 @@
                         @if(!$h->hasSalle() && !$h->demandeEnAttente())
                             <form method="POST" action="{{ $askRoute }}" class="d-inline">
                                 @csrf
-                                <button class="btn btn-sm btn-outline-success" title="Demander une salle"><i class="bi bi-door-open"></i> Demander une salle</button>
+                                <button class="btn btn-sm btn-outline-success" title="Demander une salle"><i class="bi bi-door-open"></i></button>
                             </form>
                         @endif
                     @endcan
                     @can('delete', $h)
                         <form method="POST" action="{{ $destroyRoute }}" class="d-inline">
                             @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer cet horaire ?')" title="Supprimer"><i class="bi bi-trash"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer cet horaire ?')"><i class="bi bi-trash"></i></button>
                         </form>
                     @endcan
                 </td>
@@ -126,13 +113,3 @@
     <div class="mt-3">{{ $horaires->links() }}</div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    let timeout;
-    document.querySelector('#filterForm input[name="q"]')?.addEventListener('input', () => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => document.getElementById('filterForm').submit(), 450);
-    });
-</script>
-@endpush

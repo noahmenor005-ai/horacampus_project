@@ -19,6 +19,7 @@ use App\Models\Mention;
 use App\Models\Promotion;
 use App\Models\Semestre;
 use App\Models\Ue;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -30,6 +31,24 @@ class DatabaseSeeder extends Seeder
         $this->seedUsers();
         $this->seedInfrastructure();
         $this->seedLmd();
+        $this->seedSettings();
+    }
+
+    private function seedSettings(): void
+    {
+        $defaults = [
+            'nom_universite' => 'HoraCampus University',
+            'email_contact' => 'noahmenor005@gmail.com',
+            'telephone' => '+243 999 000 000',
+            'adresse' => 'Campus principal',
+            'heure_debut_journee' => '08:00',
+            'heure_fin_journee' => '18:00',
+            'message_accueil' => 'Gestion intelligente des horaires et des auditoires universitaires',
+        ];
+
+        foreach ($defaults as $cle => $valeur) {
+            Setting::updateOrCreate(['cle' => $cle], ['valeur' => $valeur]);
+        }
     }
 
     private function seedUsers(): void
@@ -38,8 +57,8 @@ class DatabaseSeeder extends Seeder
             ['email' => 'noahmenor005@gmail.com'],
             [
                 'nom' => 'MENOR',
-                'postnom' => 'NOAH',
-                'prenom' => 'Admin',
+                'postnom' => null,
+                'prenom' => 'NOAH',
                 'matricule' => null,
                 'sexe' => 'M',
                 'password' => Hash::make('#noah005'),
@@ -351,10 +370,16 @@ class DatabaseSeeder extends Seeder
         );
 
         $promos = [];
-        foreach (['L1' => 'L1 Génie Logiciel', 'L2' => 'L2 Génie Logiciel', 'L3' => 'L3 Génie Logiciel'] as $niveau => $nom) {
+        foreach ([
+            'L1' => 'L1 Génie Logiciel',
+            'L2' => 'L2 Génie Logiciel',
+            'L3' => 'L3 Génie Logiciel',
+            'M1' => 'M1 Génie Logiciel',
+            'M2' => 'M2 Génie Logiciel',
+        ] as $niveau => $nom) {
             $promos[$niveau] = Promotion::updateOrCreate(
                 ['mention_id' => $mentionGl->id, 'nom' => $nom],
-                ['annee_academique_id' => $annee->id, 'niveau' => $niveau, 'effectif' => 55, 'actif' => true]
+                ['annee_academique_id' => $annee->id, 'niveau' => $niveau, 'effectif' => $niveau[0] === 'M' ? 30 : 55, 'actif' => true]
             );
         }
         Promotion::updateOrCreate(
@@ -518,23 +543,44 @@ class DatabaseSeeder extends Seeder
     private function seedInfrastructure(): void
     {
         $batiments = [];
-        foreach (['A', 'B'] as $bloc) {
+        foreach ([
+            'A' => ['Bâtiment A — Sciences', 'Campus principal, allée des Sciences', 3],
+            'B' => ['Bâtiment B — Amphithéâtres', 'Campus principal, place centrale', 4],
+        ] as $bloc => [$nom, $loc, $etages]) {
             $batiments[$bloc] = Batiment::updateOrCreate(
                 ['code' => "BAT-$bloc"],
-                ['nom' => "Bâtiment $bloc — Campus principal", 'adresse' => 'Campus universitaire']
+                [
+                    'nom' => $nom,
+                    'adresse' => $loc,
+                    'localisation' => $loc,
+                    'nombre_etages' => $etages,
+                    'description' => "Infrastructure $nom utilisée pour les cours et travaux pratiques.",
+                    'statut' => 'actif',
+                ]
             );
 
+            $types = ['auditoire', 'cours', 'informatique', 'laboratoire'];
             foreach (range(1, 4) as $i) {
+                $type = $types[$i - 1];
                 Auditoire::updateOrCreate(
                     ['nom' => "{$bloc}{$i}01"],
-                    ['batiment_id' => $batiments[$bloc]->id, 'capacite' => 40 + $i * 30, 'type' => 'cours', 'equipements' => 'Tableau, projecteur, prise réseau', 'disponibilite' => true, 'etat' => 'disponible']
+                    [
+                        'batiment_id' => $batiments[$bloc]->id,
+                        'numero' => "{$bloc}{$i}01",
+                        'capacite' => 40 + $i * 30,
+                        'type' => $type,
+                        'equipements' => 'projecteur, tableau, internet',
+                        'disponibilite' => true,
+                        'etat' => 'disponible',
+                        'statut' => 'actif',
+                    ]
                 );
             }
         }
 
         Auditoire::updateOrCreate(
             ['nom' => 'EN-ATTENTE'],
-            ['batiment_id' => $batiments['A']->id, 'capacite' => 9999, 'type' => 'attente', 'equipements' => 'Salle virtuelle en attente d\'attribution', 'disponibilite' => true, 'etat' => 'disponible']
+            ['batiment_id' => $batiments['A']->id, 'numero' => 'EN-ATTENTE', 'capacite' => 9999, 'type' => 'attente', 'equipements' => 'Salle virtuelle en attente d\'attribution', 'disponibilite' => true, 'etat' => 'disponible', 'statut' => 'actif']
         );
     }
 
