@@ -110,7 +110,7 @@ class HoraireService
         $data = $this->normalize($data);
 
         if (empty($data['heure_debut']) || empty($data['heure_fin']) || !TimeHelper::isValidRange($data['heure_debut'], $data['heure_fin'])) {
-            $messages[] = 'Les heures sont invalides : l\'heure de fin doit être postérieure à l\'heure de début.';
+            $messages[] = 'Impossible de programmer ce cours : l\'horaire est invalide (l\'heure de fin doit être postérieure à l\'heure de début).';
             return $messages;
         }
 
@@ -126,23 +126,27 @@ class HoraireService
             $query->whereKeyNot($ignore->getKey());
         }
 
+        $debut = substr((string) $data['heure_debut'], 0, 5);
+        $fin = substr((string) $data['heure_fin'], 0, 5);
+
         if (!empty($data['auditoire_id']) && !$this->isPlaceholderRoom((int) $data['auditoire_id'])) {
             $auditoire = $query->clone()->where('auditoire_id', $data['auditoire_id'])->first();
             if ($auditoire) {
-                $messages[] = "L'auditoire « " . optional($auditoire->auditoire)->nom . " » est déjà occupé sur ce créneau.";
+                $nomSalle = optional($auditoire->auditoire)->nom ?: 'sélectionnée';
+                $messages[] = "Impossible de programmer ce cours : la salle « {$nomSalle} » est déjà occupée de {$debut} à {$fin}.";
             }
         }
 
         $enseignant = $query->clone()->where('enseignant_id', $data['enseignant_id'])->first();
         if ($enseignant) {
             $nom = optional($enseignant->enseignant)->nom_complet ?: 'sélectionné';
-            $messages[] = "L'enseignant « {$nom} » a déjà un cours au même moment.";
+            $messages[] = "Impossible de programmer ce cours : l'enseignant {$nom} est déjà occupé de {$debut} à {$fin}.";
         }
 
         $promotion = $query->clone()->where('promotion_id', $data['promotion_id'])->first();
         if ($promotion) {
             $nom = optional($promotion->promotion)->nom ?: 'sélectionnée';
-            $messages[] = "La promotion « {$nom} » a déjà un cours au même moment.";
+            $messages[] = "Impossible de programmer ce cours : la promotion « {$nom} » est déjà occupée de {$debut} à {$fin}.";
         }
 
         $ecId = $data['ec_id'] ?? null;
@@ -160,13 +164,13 @@ class HoraireService
 
             if ($ecConflict) {
                 $ec = Ec::find($ecId);
-                $messages[] = "L'EC « " . ($ec->nom ?? $ecId) . " » est déjà programmé au même moment.";
+                $messages[] = "Impossible de programmer ce cours : l'EC « " . ($ec->nom ?? $ecId) . " » est déjà programmé de {$debut} à {$fin}.";
             }
         }
 
         $dispo = app(DisponibiliteService::class);
         if (!empty($data['enseignant_id']) && !$dispo->estDisponible((int) $data['enseignant_id'], $date, $data['heure_debut'], $data['heure_fin'])) {
-            $messages[] = "L'enseignant n'est pas disponible sur ce créneau (aucune disponibilité validée ne couvre ces heures).";
+            $messages[] = "Impossible de programmer ce cours : l'enseignant n'est pas disponible de {$debut} à {$fin}.";
         }
 
         $effectif = (int) ($data['effectif_attendu'] ?? 0);
@@ -238,6 +242,38 @@ class HoraireService
     public function placeholderAuditoire(): ?Auditoire
     {
         return Auditoire::where('nom', 'EN-ATTENTE')->first();
+    }
+
+    public function weeklyGrid($horaires, string $start = '08:00', string $end = '18:00'): array
+    {
+        $jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
+        $hours = [];
+        $startH = (int) substr($start, 0, 2);
+        $endH = (int) substr($end, 0, 2);
+        for ($h = $startH; $h < $endH; $h++) {
+            $hours[] = sprintf('%02d:00', $h);
+        }
+
+        $grid = [];
+        foreach ($hours as $hour) {
+            foreach ($jours as $jour) {
+                $grid[$hour][$jour] = [];
+            }
+        }
+
+        foreach ($horaires as $horaire) {
+            $jour = $horaire->jour;
+            if (!in_array($jour, $jours, true)) {
+                continue;
+            }
+            $slot = substr((string) $horaire->heure_debut, 0, 2) . ':00';
+            if (!isset($grid[$slot][$jour])) {
+                $grid[$slot][$jour] = [];
+            }
+            $grid[$slot][$jour][] = $horaire;
+        }
+
+        return compact('jours', 'hours', 'grid');
     }
 
     private function normalize(array $data): array

@@ -47,13 +47,23 @@
             </div>
 
             <div class="col-md-6">
+                <label class="form-label" for="postnom">Postnom</label>
+                <input id="postnom" type="text" name="postnom" value="{{ old('postnom', $user->postnom) }}" class="form-control">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="password">Mot de passe {{ $user->exists ? '(laisser vide pour conserver)' : '' }}</label>
+                <input id="password" type="password" name="password" class="form-control @error('password') is-invalid @enderror" @unless($user->exists) required @endunless>
+                @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-md-6">
                 <label class="form-label" for="role">Rôle</label>
                 <select id="role" name="role" class="form-select @error('role') is-invalid @enderror" required>
                     <option value="">Choisir un rôle…</option>
-                    @foreach(\App\Models\User::ROLES as $role)
-                        <option value="{{ $role }}" @selected((string)old('role', $user->role) === $role)>{{ $roleLabels[$role] ?? $role }}</option>
+                    @foreach(['admin' => 'Administrateur', 'decanat' => 'Décanat'] as $role => $label)
+                        <option value="{{ $role }}" @selected((string)old('role', $user->role ?: request('role')) === $role)>{{ $label }}</option>
                     @endforeach
                 </select>
+                <div class="form-text">Les étudiants et enseignants sont créés uniquement par le Décanat.</div>
                 @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-6">

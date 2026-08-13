@@ -33,9 +33,12 @@ class HoraireController extends Controller
 
     public function index(Request $request)
     {
-        $horaires = $this->horaires->filteredQuery($request)->paginate(15)->withQueryString();
+        $query = $this->horaires->filteredQuery($request);
+        $vue = $request->input('vue', 'grille');
+        $horaires = $query->paginate(15)->withQueryString();
+        $grille = $this->horaires->weeklyGrid($this->horaires->filteredQuery($request)->get());
 
-        return view('horaires.index', array_merge(compact('horaires'), $this->formData()));
+        return view('horaires.index', array_merge(compact('horaires', 'grille', 'vue'), $this->formData()));
     }
 
     public function show(Horaire $horaire)
@@ -79,6 +82,10 @@ class HoraireController extends Controller
 
         $horaire = $this->horaires->create($this->hydrate($request));
         $notifications->broadcast('Nouveau cours programmé', 'Un nouveau créneau horaire a été programmé.', ['admin', 'decanat']);
+        if ($horaire->enseignant) {
+            $notifications->notifyUser($horaire->enseignant, 'Modification d\'horaire', 'Un cours vous a été programmé le ' . $horaire->date->format('d/m/Y') . '.');
+        }
+        $notifications->notifyPromotion($horaire->promotion_id, 'Modification d\'horaire', 'Un cours a été ajouté à votre emploi du temps.');
         $audit->record('horaire.created', $horaire, $request->user(), $request->validated());
 
         $route = $request->user()->isDecanat() ? 'decanat.horaires.show' : 'horaires.show';

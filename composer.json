@@ -1,12 +1,11 @@
 {
     "name": "laravel/laravel",
     "type": "project",
-    "description": "The Laravel Framework.",
-    "keywords": ["framework", "laravel"],
+    "description": "HoraCampus — Gestion intelligente des horaires et des auditoires universitaires",
+    "keywords": ["horacampus", "university", "timetable"],
     "license": "MIT",
     "require": {
         "php": "^7.3|^8.0",
-        "doctrine/dbal": "^3.5",
         "fruitcake/laravel-cors": "^2.0",
         "guzzlehttp/guzzle": "^7.0.1",
         "laravel/framework": "^8.75",
@@ -25,19 +24,8 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/",
-            "Dompdf\\": "vendor/dompdf/dompdf/src/",
-            "FontLib\\": "vendor/dompdf/php-font-lib/src/FontLib/",
-            "Svg\\": "vendor/dompdf/php-svg-lib/src/Svg/",
-            "Masterminds\\": "vendor/masterminds/html5/src/",
-            "Sabberworm\\CSS\\": "vendor/sabberworm/php-css-parser/src/"
-        },
-        "classmap": [
-            "vendor/dompdf/dompdf/lib/"
-        ],
-        "files": [
-            "vendor/thecodingmachine/safe/horacampus_autoload.php"
-        ]
+            "Database\\Seeders\\": "database/seeders/"
+        }
     },
     "autoload-dev": {
         "psr-4": {

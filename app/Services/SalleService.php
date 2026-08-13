@@ -23,6 +23,11 @@ class SalleService
             ->with('batiment')
             ->where('disponibilite', true)
             ->where('etat', 'disponible')
+            ->where(function ($q) {
+                $q->whereNull('statut')->orWhere('statut', '!=', 'inactif');
+            })
+            ->where('nom', '!=', 'EN-ATTENTE')
+            ->where('type', '!=', 'attente')
             ->where('capacite', '>=', $effectif)
             ->whereDoesntHave('horaires', function ($q) use ($date, $heureDebut, $heureFin) {
                 $q->whereDate('date', $date)

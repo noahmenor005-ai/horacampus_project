@@ -70,7 +70,10 @@ class UserController extends Controller
     public function store(UserRequest $request, AuditService $audit, NotificationService $notifications)
     {
         $data = $request->validated();
-        $data['password'] = Hash::make($data['password'] ?? 'password');
+        $plain = $data['password'] ?? 'password';
+        $data['password'] = Hash::make($plain);
+        $data['is_active'] = true;
+        $data['statut_inscription'] = 'actif';
 
         $user = User::create($data);
         $audit->record('user.created', $user, $request->user(), $request->validated());
@@ -96,8 +99,14 @@ class UserController extends Controller
     public function update(UserRequest $request, User $user, AuditService $audit)
     {
         $this->authorize('update', $user);
-        $user->update($request->validated());
-        $audit->record('user.updated', $user, $request->user(), $request->validated());
+        $data = $request->validated();
+        if (!empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
+        $user->update($data);
+        $audit->record('user.updated', $user, $request->user(), $request->except('password'));
 
         return redirect()->route('users.index')->with('success', 'Utilisateur mis à jour.');
     }
@@ -131,5 +140,23 @@ class UserController extends Controller
         $user->delete();
 
         return back()->with('success', 'Utilisateur supprimé.');
+    }
+
+    public function decanats(Request $request)
+    {
+        $this->authorize('viewAny', User::class);
+
+        $query = User::with('faculte')
+            ->where('role', User::ROLE_DECANAT)
+            ->latest();
+
+        if ($request->filled('q')) {
+            $term = '%' . $request->input('q') . '%';
+            $query->where(fn ($q) => $q->where('nom', 'like', $term)->orWhere('prenom', 'like', $term)->orWhere('email', 'like', $term));
+        }
+
+        $users = $query->paginate(12)->withQueryString();
+
+        return view('users.decanats', compact('users'));
     }
 }

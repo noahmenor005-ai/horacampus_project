@@ -17,11 +17,17 @@ class UserRequest extends FormRequest
     {
         // L'administrateur ne doit PAS créer directement les étudiants et enseignants
         // Il ne gère que les comptes Décanat (et admin)
+        $passwordRule = $this->isMethod('post')
+            ? ['required', 'string', 'min:6']
+            : ['nullable', 'string', 'min:6'];
+
         return [
             'nom' => ['required', 'string', 'max:100'],
+            'postnom' => ['nullable', 'string', 'max:100'],
             'prenom' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user'))],
             'telephone' => ['nullable', 'string', 'max:30'],
+            'password' => $passwordRule,
             'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_DECANAT])],
             'status' => ['required', Rule::in(User::STATUSES)],
             'faculte_id' => ['required_if:role,decanat', 'nullable', 'exists:facultes,id'],
